@@ -394,6 +394,18 @@ public class UserService implements IUserService  {
 
 		}
 	}
+	
+	public void saveRefreshToken(String userID, String refreshToken) {
+		
+		try {
+			 userRepository.saveRefreshToken(userID, refreshToken);
+		}catch (Exception e) {
+			logger.error("Error occurred while user deleting preferences, " + e.toString());
+			e.printStackTrace();
+			throw e;
+
+		}
+	}
 
 }
 

@@ -71,5 +71,8 @@ public class User {
 	@Column(nullable = true, columnDefinition = "varchar(255)")
 	private String preferences;
 	
+	@Column(nullable = true, columnDefinition = "varchar(2048)")
+	private String refreshToken;
+	
 }
 

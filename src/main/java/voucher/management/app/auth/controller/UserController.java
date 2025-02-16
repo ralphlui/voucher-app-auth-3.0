@@ -179,6 +179,7 @@ public class UserController {
 	        headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 			
 	        HttpStatus httpStatus = HttpStatus.OK;
+	        userService.saveRefreshToken(userDTO.getUserID(), refreshToken);
 			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
 			
