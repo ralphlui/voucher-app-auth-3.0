@@ -8,9 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +35,10 @@ import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
+import voucher.management.app.auth.service.impl.JWTService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
+import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.GeneralUtility;
 
@@ -54,6 +58,10 @@ public class UserController {
 	
 	@Autowired
 	private AuditLogService auditLogService;
+	
+	@Autowired
+	private JWTService jwtService;
+
 	
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
@@ -158,8 +166,21 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";
-			return handleResponseAndsendAuditLogForSuccessCase(userDTO,
-					activityType, message, apiEndPoint, httpMethod);
+			String accessToken = jwtService.generateToken(userDTO.getUsername(), userDTO.getEmail(), false);
+			String refreshToken = jwtService.generateToken(userDTO.getUsername(), userDTO.getEmail(), true);
+	        
+	        ResponseCookie accessTokenCookie = CookieUtils.createCookie("access_token", accessToken, false);
+	        ResponseCookie refreshTokenCookie = CookieUtils.createCookie("refresh_token", refreshToken, true);
+
+
+	        // Add cookie to headers
+	        HttpHeaders headers = new HttpHeaders();
+	        headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+	        headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+			
+	        HttpStatus httpStatus = HttpStatus.OK;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
 			
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED : HttpStatus.INTERNAL_SERVER_ERROR;
