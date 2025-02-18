@@ -6,12 +6,14 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
+import voucher.management.app.auth.entity.User;
 
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -25,6 +27,9 @@ public class JWTService {
 
 	@Autowired
 	private JWTConfig jwtConfig;
+	
+	@Autowired
+	ApplicationContext context;
 
 	public String generateToken(String userName, String userEmail, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
@@ -77,6 +82,17 @@ public class JWTService {
 
 	private Date extractExpiration(String token) throws JwtException, IllegalArgumentException, Exception {
 		return extractClaim(token, Claims::getExpiration);
+	}
+	
+	
+	public UserDetails getUserDetail(String token) throws JwtException, IllegalArgumentException, Exception {
+		Claims claims = extractAllClaims(token);
+		String userEmail = claims.get("userEmail", String.class);
+		User user = context.getBean(UserService.class).findByEmail(userEmail);
+		UserDetails userDetails = org.springframework.security.core.userdetails.User
+				.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRole().toString())
+				.build();
+		return userDetails;
 	}
 
 }

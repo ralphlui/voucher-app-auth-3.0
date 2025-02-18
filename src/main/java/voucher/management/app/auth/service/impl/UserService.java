@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -52,6 +54,9 @@ public class UserService implements IUserService  {
 	
 	@Autowired
 	private VoucherManagementAuthenticationSecurityConfig securityConfig;
+	
+	@Autowired
+	private JWTService jwtService;
 
 	@Override
 	public Map<Long, List<UserDTO>> findActiveUsers(Pageable pageable) {
@@ -395,6 +400,7 @@ public class UserService implements IUserService  {
 		}
 	}
 	
+	@Override
 	public void saveRefreshToken(String userID, String refreshToken) {
 		
 		try {
@@ -404,6 +410,22 @@ public class UserService implements IUserService  {
 			e.printStackTrace();
 			throw e;
 
+		}
+	}
+	
+	public Boolean verifyRefreshToken(String refreshToken) throws Exception {
+		try {
+			Optional<String> refreshTokenOpt = userRepository.findByRefreshToken(refreshToken);
+			if (refreshTokenOpt.isEmpty()) {
+				throw new Exception("Invalid Refresh Token.");
+			}
+			UserDetails userDetails = jwtService.getUserDetail(refreshToken);
+			return jwtService.validateToken(refreshToken, userDetails);
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while verifying refresh token, " + e.toString());
+			e.printStackTrace();
+			throw e;
 		}
 	}
 

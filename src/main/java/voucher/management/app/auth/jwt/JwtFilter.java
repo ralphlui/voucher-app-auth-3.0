@@ -73,11 +73,8 @@ public class JwtFilter extends OncePerRequestFilter {
 		}
 
 		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-			User user = context.getBean(UserService.class).findByEmail(username);
-			UserDetails userDetails = org.springframework.security.core.userdetails.User
-					.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRole().toString())
-					.build();
 			try {
+			UserDetails userDetails = jwtService.getUserDetail(jwtToken);
 				if (jwtService.validateToken(jwtToken, userDetails)) {
 					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
 							userDetails, null, userDetails.getAuthorities());
@@ -93,7 +90,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
 		filterChain.doFilter(request, response);
 	}
-
+	
 	private void handleException(HttpServletResponse response, String message, int status) throws IOException {
 		TokenErrorResponse.sendErrorResponse(response, message, status, "UnAuthorized");
 		auditLogService.sendAuditLogToSqs(Integer.toString(status), userID, AuditLogInvalidUser.InvalidUserName.toString(), "", message, apiEndpoint, AuditLogResponseStatus.FAILED.toString(), httpMethod, message);
