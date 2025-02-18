@@ -15,7 +15,10 @@ import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
 import voucher.management.app.auth.entity.User;
 
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -94,5 +97,16 @@ public class JWTService {
 				.build();
 		return userDetails;
 	}
+	
+    public String hashWithSHA256(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashedBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hashedBytes);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing refresh token", e);
+        }
+    }
+
 
 }

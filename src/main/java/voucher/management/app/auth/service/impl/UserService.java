@@ -404,7 +404,8 @@ public class UserService implements IUserService  {
 	public void saveRefreshToken(String userID, String refreshToken) {
 		
 		try {
-			 userRepository.saveRefreshToken(userID, refreshToken);
+			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 userRepository.saveRefreshToken(userID, hashedToken);
 		}catch (Exception e) {
 			logger.error("Error occurred while user deleting preferences, " + e.toString());
 			e.printStackTrace();
