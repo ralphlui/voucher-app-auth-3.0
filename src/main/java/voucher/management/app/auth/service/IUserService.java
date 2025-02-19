@@ -37,4 +37,6 @@ public interface IUserService {
 	 UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception;
 	 
 	 void saveRefreshToken(String userID, String refreshToken);
+	 
+	 Boolean verifyRefreshToken(String refreshToken) throws Exception ;
 }

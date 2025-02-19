@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -131,7 +130,13 @@ public class UserService implements IUserService  {
 	@Override
 	public User findByUserId(String userId) {
 
-		return userRepository.findByUserId(userId);
+		try {
+			User user = userRepository.findByUserId(userId);
+			return user;
+		} catch (Exception e) {
+			throw e;
+		}
+		
 	}
 
 
@@ -405,7 +410,7 @@ public class UserService implements IUserService  {
 		
 		try {
 			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
-			 userRepository.saveRefreshToken(userID, hashedToken);
+			 userRepository.saveRefreshToken(hashedToken, userID);
 		}catch (Exception e) {
 			logger.error("Error occurred while user deleting preferences, " + e.toString());
 			e.printStackTrace();
@@ -414,11 +419,13 @@ public class UserService implements IUserService  {
 		}
 	}
 	
+	@Override
 	public Boolean verifyRefreshToken(String refreshToken) throws Exception {
 		try {
-			Optional<String> refreshTokenOpt = userRepository.findByRefreshToken(refreshToken);
-			if (refreshTokenOpt.isEmpty()) {
-				throw new Exception("Invalid Refresh Token.");
+			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 User user = userRepository.findByRefreshToken(hashedToken);
+			if (user == null) {
+				throw new UserNotFoundException("Invalid Refresh Token.");
 			}
 			UserDetails userDetails = jwtService.getUserDetail(refreshToken);
 			return jwtService.validateToken(refreshToken, userDetails);

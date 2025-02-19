@@ -40,10 +40,10 @@ public interface UserRepository extends JpaRepository<User, String> {
 	
 	@Modifying
 	@Transactional
-	@Query("UPDATE User u SET u.refreshToken = ?2  WHERE u.userId = ?1")
-	int saveRefreshToken(String userId,  String token);
+	@Query("UPDATE User u SET u.refreshToken = ?1  WHERE u.userId = ?2")
+	int saveRefreshToken(String token,  String userId);
 	
-	Optional<String> findByRefreshToken(String token);
+	User findByRefreshToken(String token);
 	
 	
 }

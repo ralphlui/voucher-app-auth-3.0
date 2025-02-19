@@ -5,12 +5,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
-import voucher.management.app.auth.service.impl.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -54,25 +52,9 @@ public class JwtFilter extends OncePerRequestFilter {
 		}
 
 		String jwtToken = authHeader.substring(7); // Remove "Bearer " prefix
-		String username = null;
+	
 
-		try {
-			username = jwtService.extractUserName(jwtToken); // Extract username from token
-		} catch (ExpiredJwtException e) {
-			handleException(response, "JWT token is expired", HttpServletResponse.SC_UNAUTHORIZED);
-			return;
-		} catch (MalformedJwtException e) {
-			handleException(response, "Invalid JWT token", HttpServletResponse.SC_UNAUTHORIZED);
-			return;
-		} catch (SecurityException e) {
-			handleException(response, "JWT signature is invalid", HttpServletResponse.SC_UNAUTHORIZED);
-			return;
-		} catch (Exception e) {
-			handleException(response, "Error processing JWT token", HttpServletResponse.SC_UNAUTHORIZED);
-			return;
-		}
-
-		if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+		if (SecurityContextHolder.getContext().getAuthentication() == null) {
 			try {
 			UserDetails userDetails = jwtService.getUserDetail(jwtToken);
 				if (jwtService.validateToken(jwtToken, userDetails)) {
@@ -82,9 +64,18 @@ public class JwtFilter extends OncePerRequestFilter {
 
 					SecurityContextHolder.getContext().setAuthentication(authentication);
 				}
+			} catch (ExpiredJwtException e) {
+				handleException(response, "JWT token is expired", HttpServletResponse.SC_UNAUTHORIZED);
+				return;
+			} catch (MalformedJwtException e) {
+				handleException(response, "Invalid JWT token", HttpServletResponse.SC_UNAUTHORIZED);
+				return;
+			} catch (SecurityException e) {
+				handleException(response, "JWT signature is invalid", HttpServletResponse.SC_UNAUTHORIZED);
+				return;
 			} catch (Exception e) {
-				handleException(response, e.getMessage(), HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-				e.printStackTrace();
+				handleException(response, e.getMessage(), HttpServletResponse.SC_UNAUTHORIZED);
+				return;
 			}
 		}
 

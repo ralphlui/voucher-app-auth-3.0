@@ -1,12 +1,19 @@
 package voucher.management.app.auth.utility;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Optional;
 
 import org.springframework.http.ResponseCookie;
+import org.springframework.stereotype.Component;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Cookie;
+
+@Component
 public class CookieUtils {
 
-	public static ResponseCookie createCookie(String name, String value, boolean httpOnly) {
+	public ResponseCookie createCookie(String name, String value, boolean httpOnly) {
 	    return ResponseCookie.from(name, value)
 	            .httpOnly(httpOnly)  // Secure access based on token type
 	            .secure(true)        // Ensure HTTPS only
@@ -15,4 +22,13 @@ public class CookieUtils {
 	            .sameSite("Strict")  // CSRF protection
 	            .build();
 	}
+	
+	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request) {
+        if (request.getCookies() == null) return Optional.empty();
+
+        return Arrays.stream(request.getCookies())
+                .filter(cookie -> "refresh_token".equals(cookie.getName()))
+                .map(Cookie::getValue)
+                .findFirst();
+    }
 }

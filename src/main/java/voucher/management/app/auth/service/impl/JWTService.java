@@ -34,14 +34,14 @@ public class JWTService {
 	@Autowired
 	ApplicationContext context;
 
-	public String generateToken(String userName, String userEmail, Boolean isRefreshToken)
+	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
 		long tokenValidDuration = isRefreshToken ? System.currentTimeMillis() + 24 * 60 * 60 * 1000
 				: System.currentTimeMillis() + 30 * 60 * 1000;
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
 		claims.put("userName", userName);
-		return Jwts.builder().claims().add(claims).subject(userName).issuedAt(new Date(System.currentTimeMillis()))
+		return Jwts.builder().claims().add(claims).subject(userID).issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(tokenValidDuration)).and().signWith(loadPrivateKey(), Jwts.SIG.RS256).compact();
 	}
 
@@ -58,7 +58,7 @@ public class JWTService {
 		return keyFactory.generatePublic(new X509EncodedKeySpec(keyBytes));
 	}
 
-	public String extractUserName(String token) throws JwtException, IllegalArgumentException, Exception {
+	public String extractUserID(String token) throws JwtException, IllegalArgumentException, Exception {
 		// TODO Auto-generated method stub
 		return extractClaim(token, Claims::getSubject);
 	}
@@ -75,8 +75,9 @@ public class JWTService {
 
 	public Boolean validateToken(String token, UserDetails userDetails)
 			throws JwtException, IllegalArgumentException, Exception {
-		final String userName = extractUserName(token);
-		return (userName.equals(userDetails.getUsername()) && !isTokenExpired(token));
+		Claims claims = extractAllClaims(token);
+		String userEmail = claims.get("userEmail", String.class);
+		return (userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token));
 	}
 
 	public boolean isTokenExpired(String token) throws JwtException, IllegalArgumentException, Exception {
@@ -89,11 +90,10 @@ public class JWTService {
 	
 	
 	public UserDetails getUserDetail(String token) throws JwtException, IllegalArgumentException, Exception {
-		Claims claims = extractAllClaims(token);
-		String userEmail = claims.get("userEmail", String.class);
-		User user = context.getBean(UserService.class).findByEmail(userEmail);
+		String userID = extractUserID(token);
+		User user = context.getBean(UserService.class).findByUserId(userID);
 		UserDetails userDetails = org.springframework.security.core.userdetails.User
-				.withUsername(user.getUsername()).password(user.getPassword()).roles(user.getRole().toString())
+				.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole().toString())
 				.build();
 		return userDetails;
 	}
