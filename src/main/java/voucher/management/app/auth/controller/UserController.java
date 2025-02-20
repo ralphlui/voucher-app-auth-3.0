@@ -528,6 +528,34 @@ public class UserController {
 
 	}
 	
+	@GetMapping("/verifyToken")
+	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("X-User-Id") String userID) {
+		
+		String activityType = "Authentication-VerifyToken";
+		String apiEndPoint = "/api/users/verifyToken";
+		String httpMethod = HttpMethod.GET.name();
+		String message = "";
+		String activityDesc = "Verifying access token is failed due to ";
+		
+		try {
+			User user = userService.findByUserId(userID);
+			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
+			
+			HttpStatus httpStatus = HttpStatus.OK;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
+					 userID, auditLogUserName, activityType, message,
+					 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+			message = "Token is valid.";
+			
+			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.successWithNoData(message));
+		} catch (Exception e) {
+			return handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
+					activityDesc, apiEndPoint, httpMethod);
+		}
+		
+	}
+
+	
 
 	
 	private ValidationResult validateObjectByUseId(String userID, String id) {
