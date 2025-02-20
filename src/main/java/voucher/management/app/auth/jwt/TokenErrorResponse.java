@@ -22,8 +22,8 @@ public class TokenErrorResponse {
         errorDetails.put("message", message);
         errorDetails.put("totalRecord", 0);
         errorDetails.put("data", null);
-        errorDetails.put("status", status);
-        errorDetails.put("error", error);
+        //errorDetails.put("status", status);
+        //errorDetails.put("error", error);
 
         response.getWriter().write(objectMapper.writeValueAsString(errorDetails));
     }
