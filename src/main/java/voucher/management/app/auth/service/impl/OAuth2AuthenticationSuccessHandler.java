@@ -1,0 +1,65 @@
+package voucher.management.app.auth.service.impl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+
+@Component
+public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+	
+	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+	
+    private final String frontEndUrl;
+    private final String emailFrom;
+    private final String sqsUrl;
+
+    @Autowired
+    public OAuth2AuthenticationSuccessHandler(@Qualifier("getFrontEndUrl") String frontEndUrl,
+                                              @Qualifier("getEmailFrom") String emailFrom,
+                                              @Qualifier("getSQSUrl") String sqsUrl) {
+        this.frontEndUrl = frontEndUrl;
+        this.emailFrom = emailFrom;
+        this.sqsUrl = sqsUrl;
+    }
+
+
+
+    public OAuth2AuthenticationSuccessHandler(String frontEndUrl) {
+        this.frontEndUrl = frontEndUrl;
+		this.emailFrom = "";
+		this.sqsUrl = "";
+    }
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+                                        Authentication authentication) throws IOException, ServletException {
+        OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+        OAuth2User principal = oauthToken.getPrincipal();
+
+        String email = principal.getAttribute("email");
+        String name = principal.getAttribute("name");
+        logger.info("onAuthenticationSuccess: "+ email);
+
+        if (userExists(email)) {
+            response.sendRedirect(frontEndUrl + "/dashboard");
+        } else {
+            response.sendRedirect(frontEndUrl + "/choose-role");
+        }
+    }
+
+    public boolean userExists(String email) {
+        // Check if user exists in DB
+        return false;
+    }
+}
