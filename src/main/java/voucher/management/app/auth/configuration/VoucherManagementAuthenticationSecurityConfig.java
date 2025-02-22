@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.HstsHeaderWriter;
@@ -22,6 +23,7 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import voucher.management.app.auth.jwt.JwtFilter;
+import voucher.management.app.auth.service.impl.OAuth2AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -44,14 +46,12 @@ public class VoucherManagementAuthenticationSecurityConfig {
 	@Autowired 
 	private JwtFilter jwtFilter;
 
-	private static final String[] SECURED_URLS = { "/api/**" };
-
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 		return http.cors(cors -> {
 			cors.configurationSource(request -> {
 				CorsConfiguration config = new CorsConfiguration();
-				config.setAllowedOrigins(List.of("*"));
+				config.setAllowedOrigins(List.of("https://devplify.com"));
 				config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
 				config.setAllowedHeaders(List.of("*"));
 				config.applyPermitDefaultValues();
@@ -65,15 +65,30 @@ public class VoucherManagementAuthenticationSecurityConfig {
 					response.addHeader("Cache-Control", "max-age=60, must-revalidate");
 				})).csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(
-						auth -> auth.requestMatchers(SECURED_URLS).permitAll().anyRequest().authenticated())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-				.build();
+	            .oauth2Login(oauth2 -> 
+	                oauth2
+	                    .userInfoEndpoint(userInfo -> 
+	                        userInfo.oidcUserService(oidcUserService())
+	                    )
+	                    .successHandler(oauth2AuthenticationSuccessHandler())
+	            )
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+	            .build();
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
-		return authConfig.getAuthenticationManager();
-	}
+    public OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
+        return new OAuth2AuthenticationSuccessHandler(frontEndUrl);
+    }
+
+    @Bean
+    public OidcUserService oidcUserService() {
+        return new OidcUserService();
+    }
+    
+	
 
 }
