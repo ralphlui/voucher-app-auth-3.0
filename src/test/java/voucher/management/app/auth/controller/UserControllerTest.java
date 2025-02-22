@@ -1,5 +1,6 @@
 package voucher.management.app.auth.controller;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,7 +37,9 @@ import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
+import voucher.management.app.auth.service.impl.JWTService;
 import voucher.management.app.auth.service.impl.UserService;
+import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
@@ -62,6 +66,12 @@ public class UserControllerTest {
 	
 	@Autowired
 	private EncryptionUtils encryptionUtils;
+	
+	@MockBean
+	private JWTService jwtService;
+
+	@MockBean
+	private CookieUtils cookieUtils;
 
 	
 	User testUser;
@@ -132,17 +142,36 @@ public class UserControllerTest {
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 		Mockito.when(userService.findByEmail(userRequest.getEmail())).thenReturn(testUser);
 
-		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
-				.thenReturn(DTOMapper.toUserDTO(testUser));
+		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))	
+		.thenReturn(DTOMapper.toUserDTO(testUser));
+		
+		String userName = testUser.getUsername();
+        String email = testUser.getEmail();
+        String userId = testUser.getUserId();
+        String accessToken = "access-token";
+        String refreshToken = "refresh-token";
+        
+        ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).build();
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).build();
+
+        when(jwtService.generateToken(userName, email, userId, false)).thenReturn(accessToken);
+        when(jwtService.generateToken(userName, email, userId, true)).thenReturn(refreshToken);
+        when(cookieUtils.createCookie("access_token", accessToken, false)).thenReturn(accessTokenCookie);
+        when(cookieUtils.createCookie("refresh_token", refreshToken, true)).thenReturn(refreshTokenCookie);
+
+			
 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.header("X-User-Id", testUser.getUserId())
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
+				.andExpect(MockMvcResultMatchers.cookie().exists("access_token"))
+				.andExpect(MockMvcResultMatchers.cookie().exists("refresh_token"))
 				.andExpect(jsonPath("$.data.username").value(userRequest.getUsername()))
 				.andExpect(jsonPath("$.data.email").value(userRequest.getEmail()))
-				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString())).andDo(print());
+				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString()))
+				.andDo(print());
 		
 		UserRequest userNotFoundRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212");
 

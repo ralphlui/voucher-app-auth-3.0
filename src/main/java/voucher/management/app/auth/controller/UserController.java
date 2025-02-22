@@ -8,9 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.security.InvalidKeyException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import voucher.management.app.auth.dto.APIResponse;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
@@ -33,8 +39,10 @@ import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
+import voucher.management.app.auth.service.impl.JWTService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
+import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.GeneralUtility;
 
@@ -54,6 +62,13 @@ public class UserController {
 	
 	@Autowired
 	private AuditLogService auditLogService;
+	
+	@Autowired
+	private JWTService jwtService;
+	
+	@Autowired
+	private CookieUtils cookieUtils;
+
 	
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
@@ -157,9 +172,12 @@ public class UserController {
 			}
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
-			message = userDTO.getEmail() + " login successfully";
-			return handleResponseAndsendAuditLogForSuccessCase(userDTO,
-					activityType, message, apiEndPoint, httpMethod);
+			message = userDTO.getEmail() + " login successfully";    
+	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID());
+			
+	        HttpStatus httpStatus = HttpStatus.OK;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
 			
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -453,6 +471,90 @@ public class UserController {
 
 	}
 	
+
+	@PostMapping("/refreshToken")
+	public <T> ResponseEntity<APIResponse<T>> refreshToken(@RequestHeader("X-User-Id") String userID,
+			HttpServletRequest request, HttpServletResponse response) {
+		// Extract refresh token from cookies
+		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request).orElse(null);
+		String message = "";
+		String activityType = "Authentication-RefreshToken";
+		String apiEndPoint = "/api/users/refreshToken";
+		String httpMethod = HttpMethod.POST.name();
+		String activityDesc = "Requesting new access token is failed due to ";
+
+		try {
+
+			User user = userService.findByUserId(userID);
+			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
+
+			if (refreshToken == null) {
+				message = "Refresh token is missing";
+				logger.info("Requesting new access Token: " + message);
+				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
+				return handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, activityType, activityDesc,
+						apiEndPoint, httpMethod, message);
+
+			}
+			if (userService.verifyRefreshToken(refreshToken)) {
+				Claims claims = jwtService.extractAllClaims(refreshToken);
+				String userid = claims.getSubject();
+				String userName = claims.get("userName", String.class);
+				String userEmail = claims.get("userEmail", String.class);
+				// Add cookie to headers
+				HttpHeaders headers = createCookies(userName, userEmail, userid);
+
+				HttpStatus httpStatus = HttpStatus.OK;
+				message = "New token is generated successfully";
+				 
+				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
+				 userID, auditLogUserName, activityType, message,
+				 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+				return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.successWithNoData(message));
+
+			} else {
+				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
+				message = "Invalid or expired refresh token";
+				logger.info("Requesting refresh Token: " + message);
+				return handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, activityType, activityDesc,
+						apiEndPoint, httpMethod, message);
+			}
+
+		} catch (Exception e) {
+			return handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
+					activityDesc, apiEndPoint, httpMethod);
+
+		}
+
+	}
+	
+	@GetMapping("/verifyToken")
+	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("X-User-Id") String userID) {
+		
+		String activityType = "Authentication-VerifyToken";
+		String apiEndPoint = "/api/users/verifyToken";
+		String httpMethod = HttpMethod.GET.name();
+		String message = "";
+		String activityDesc = "Verifying access token is failed due to ";
+		
+		try {
+			User user = userService.findByUserId(userID);
+			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
+			
+			HttpStatus httpStatus = HttpStatus.OK;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
+					 userID, auditLogUserName, activityType, message,
+					 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+			message = "Token is valid.";
+			
+			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.successWithNoData(message));
+		} catch (Exception e) {
+			return handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
+					activityDesc, apiEndPoint, httpMethod);
+		}
+		
+	}
+
 	
 
 	
@@ -474,7 +576,7 @@ public class UserController {
 		
 	}
 	
-	private ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForExceptionCase(Exception e, HttpStatusCode htpStatuscode, String activityType, String activityDesc, String apiEndPoint, String httpMethod ) {
+	private <T> ResponseEntity<APIResponse<T>> handleResponseAndsendAuditLogForExceptionCase(Exception e, HttpStatusCode htpStatuscode, String activityType, String activityDesc, String apiEndPoint, String httpMethod ) {
 		String message = e.getMessage();
 		String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
 		logger.error("Error: " + message);
@@ -515,6 +617,13 @@ public class UserController {
 				.body(APIResponse.error(responseMessage));
 	}
 	
+	private <T> ResponseEntity<APIResponse<T>> handleResponseListAndsendAuditLogForJWTFailure(HttpStatus httpStatus, String userID, String activityType, String activityDesc, String apiEndPoint, String httpMethod, String message) {
+		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userID, auditLogUserName,
+				activityType, message, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		return ResponseEntity.status(httpStatus).body(APIResponse.error(message));
+	}
+	
+	
 	private void getUserByUserID(String userID) {
 		auditLogUserId = userID;
 		
@@ -525,6 +634,22 @@ public class UserController {
 				auditLogUserName = user.getUsername();
 			}
 		} 
+	}
+	
+	private HttpHeaders createCookies(String userName, String email, String userid) throws InvalidKeyException, Exception {	
+		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
+		String newRefreshToken = jwtService.generateToken(userName, email, userid, true);
+
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true);
+
+		// Add cookie to headers
+		HttpHeaders headers = new HttpHeaders();
+		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+		headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+		userService.saveRefreshToken(userid, newRefreshToken);
+			
+		return headers;
 	}
 
 }

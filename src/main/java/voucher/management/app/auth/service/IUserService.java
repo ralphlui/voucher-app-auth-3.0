@@ -35,4 +35,8 @@ public interface IUserService {
 	 User findByUserId(String userId);
 	 
 	 UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception;
+	 
+	 void saveRefreshToken(String userID, String refreshToken);
+	 
+	 Boolean verifyRefreshToken(String refreshToken) throws Exception ;
 }
