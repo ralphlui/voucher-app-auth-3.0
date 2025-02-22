@@ -2,6 +2,7 @@ package voucher.management.app.auth.configuration;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,11 +16,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.HstsHeaderWriter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
 import org.springframework.web.cors.CorsConfiguration;
 
+import voucher.management.app.auth.jwt.JwtFilter;
 import voucher.management.app.auth.service.impl.OAuth2AuthenticationSuccessHandler;
 
 @Configuration
@@ -39,6 +42,9 @@ public class VoucherManagementAuthenticationSecurityConfig {
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
+	
+	@Autowired 
+	private JwtFilter jwtFilter;
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -61,6 +67,7 @@ public class VoucherManagementAuthenticationSecurityConfig {
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 	            .oauth2Login(oauth2 -> 
 	                oauth2
 	                    .userInfoEndpoint(userInfo -> 
@@ -68,6 +75,7 @@ public class VoucherManagementAuthenticationSecurityConfig {
 	                    )
 	                    .successHandler(oauth2AuthenticationSuccessHandler())
 	            )
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 	            .build();
 	}
 

@@ -39,5 +39,9 @@ public class APIResponse<T> {
 	public static <T> APIResponse<T> success(T data, String message, long totalRecord) {
 		return APIResponse.<T>builder().success(true).message(message).totalRecord(totalRecord).data(data).build();
 	}
+	
+	public static <T> APIResponse<T> successWithNoData(String message) {
+		return APIResponse.<T>builder().success(true).message(message).totalRecord(0).build();
+	}
 
 }

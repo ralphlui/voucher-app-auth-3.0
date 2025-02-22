@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +54,9 @@ public class UserService implements IUserService  {
 	
 	@Autowired
 	private VoucherManagementAuthenticationSecurityConfig securityConfig;
+	
+	@Autowired
+	private JWTService jwtService;
 
 	@Override
 	public Map<Long, List<UserDTO>> findActiveUsers(Pageable pageable) {
@@ -133,7 +137,13 @@ public class UserService implements IUserService  {
 	@Override
 	public User findByUserId(String userId) {
 
-		return userRepository.findByUserId(userId);
+		try {
+			User user = userRepository.findByUserId(userId);
+			return user;
+		} catch (Exception e) {
+			throw e;
+		}
+		
 	}
 
 
@@ -399,6 +409,38 @@ public class UserService implements IUserService  {
 			e.printStackTrace();
 			throw e;
 
+		}
+	}
+	
+	@Override
+	public void saveRefreshToken(String userID, String refreshToken) {
+		
+		try {
+			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 userRepository.saveRefreshToken(hashedToken, userID);
+		}catch (Exception e) {
+			logger.error("Error occurred while user deleting preferences, " + e.toString());
+			e.printStackTrace();
+			throw e;
+
+		}
+	}
+	
+	@Override
+	public Boolean verifyRefreshToken(String refreshToken) throws Exception {
+		try {
+			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 User user = userRepository.findByRefreshToken(hashedToken);
+			if (user == null) {
+				throw new UserNotFoundException("Invalid Refresh Token.");
+			}
+			UserDetails userDetails = jwtService.getUserDetail(refreshToken);
+			return jwtService.validateToken(refreshToken, userDetails);
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while verifying refresh token, " + e.toString());
+			e.printStackTrace();
+			throw e;
 		}
 	}
 

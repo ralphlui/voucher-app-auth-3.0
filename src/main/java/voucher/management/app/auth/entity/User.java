@@ -75,5 +75,9 @@ public class User {
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = true)
     private AuthProvider authProvider;
+
+	@Column(nullable = true, columnDefinition = "varchar(2048)")
+	private String refreshToken;
+	
 }
 
