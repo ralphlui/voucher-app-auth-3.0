@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -16,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
@@ -30,10 +32,17 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
 	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private AuditLogService auditLogService;
 
 	private final String frontEndUrl;
 	private final String emailFrom;
 	private final String sqsUrl;
+	
+	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
+	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
+	
 
 	@Autowired
 	public OAuth2AuthenticationSuccessHandler(@Qualifier("getFrontEndUrl") String frontEndUrl,
@@ -52,14 +61,22 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
+		String message ="";
+		String activityType = "Authentication-CreateUser";
+		String apiEndPoint = "login/oauth2/code/google";
+		HttpStatus httpStatus ;
+		String email ="";
+		String name ="";
+
 		try {
 			OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
 			OAuth2User principal = oauthToken.getPrincipal();
 
-			String email = principal.getAttribute("email");
-			String name = principal.getAttribute("name");
+			 email = principal.getAttribute("email");
+			 name = principal.getAttribute("name");
 			logger.info("onAuthenticationSuccess: " + email);
-
+			
+			
 			if (userExists(email)) {
 				response.sendRedirect(frontEndUrl + "/dashboard");
 			} else {
@@ -75,13 +92,26 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 				user.setActive(true);
 				UserDTO userDTO = userService.createUser(user);
 				if (userDTO.getEmail().equals(email)) {
-					logger.info(userDTO.getEmail() + " is created successfully");
+					message = userDTO.getEmail() + " is created successfully";
+					logger.info(message);
 
 					response.sendRedirect(frontEndUrl + "/choose-role");
+					 httpStatus = HttpStatus.OK;
+					 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.SUCCESS.toString(), "GET", "");
+						
+				}else {
+					 httpStatus = HttpStatus.UNAUTHORIZED;
+					 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.FAILED.toString(), "GET", "");
+						
 				}
+				
+				
 			}
 		} catch (Exception e) {
+			message ="Exception occurred in onAuthenticationSuccess.";
 			logger.error("Exception occurred in onAuthenticationSuccess :" + e.toString());
+			httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, auditLogResponseFailure, "GET", "");
 		}
 	}
 
@@ -98,8 +128,11 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 			}
 		} catch (Exception e) {
 			logger.error("Exception occurred in userExists :" + e.toString());
+	
 		}
 		return false;
 
 	}
+	
+	
 }
