@@ -2,6 +2,7 @@ package voucher.management.app.auth.dto;
 
 import java.util.List;
 
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 
 public class UserRequest {
@@ -13,6 +14,8 @@ public class UserRequest {
 	private Boolean active;
 	private RoleType role;
 	private List<String> preferences;
+	
+    private AuthProvider authProvider;
 
 	public UserRequest() {
 		super();
@@ -109,4 +112,14 @@ public class UserRequest {
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
+
+	public AuthProvider getAuthProvider() {
+		return authProvider;
+	}
+
+	public void setAuthProvider(AuthProvider authProvider) {
+		this.authProvider = authProvider;
+	}
+	
+	
 }

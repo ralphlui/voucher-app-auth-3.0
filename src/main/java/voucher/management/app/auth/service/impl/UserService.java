@@ -25,6 +25,7 @@ import voucher.management.app.auth.configuration.VoucherManagementAuthentication
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.UserRepository;
@@ -87,9 +88,15 @@ public class UserService implements IUserService  {
 			user.setPassword(encodedPassword);
 			String code = UUID.randomUUID().toString();
 			user.setVerificationCode(code);
+			user.setAuthProvider(userReq.getAuthProvider());
+			if(user.getAuthProvider().equals(AuthProvider.GOOGLE)) {
+				user.setVerified(true);
+			}else {
 			user.setVerified(false);
+			}
 			user.setActive(true);
 			user.setRole(userReq.getRole());
+			user.setAuthProvider(userReq.getAuthProvider());
 			user.setCreatedDate(LocalDateTime.now());
 			String preferences = formatPreferencesString(userReq.getPreferences());
 			user.setPreferences(preferences);

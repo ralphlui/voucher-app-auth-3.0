@@ -28,6 +28,7 @@ import jakarta.transaction.Transactional;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.UserService;
@@ -62,8 +63,10 @@ public class UserServiceTest {
 		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true, new ArrayList<String>());
 		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(), userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
+		userRequest.setAuthProvider(AuthProvider.NATIVE);
 		user.setPreferences("food");
 		user.setUserId(userRequest.getUserId());
+		user.setAuthProvider(userRequest.getAuthProvider());
 		mockUsers.add(user);
 
 	}
