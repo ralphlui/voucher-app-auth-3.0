@@ -40,6 +40,7 @@ import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
+import voucher.management.app.auth.service.impl.RefreshTokenService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
 import voucher.management.app.auth.utility.CookieUtils;
@@ -68,6 +69,9 @@ public class UserController {
 	
 	@Autowired
 	private CookieUtils cookieUtils;
+	
+	@Autowired
+	private RefreshTokenService refreshTokenService;
 
 	
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
@@ -648,7 +652,7 @@ public class UserController {
 		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
 		headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 		if (refreshToken == null) {
-			userService.saveRefreshToken(userid, newRefreshToken);
+			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
 		}
 			
 		return headers;

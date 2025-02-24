@@ -84,7 +84,7 @@ public class JWTService {
 		return extractExpiration(token).before(new Date());
 	}
 
-	private Date extractExpiration(String token) throws JwtException, IllegalArgumentException, Exception {
+	public Date extractExpiration(String token) throws JwtException, IllegalArgumentException, Exception {
 		return extractClaim(token, Claims::getExpiration);
 	}
 	
