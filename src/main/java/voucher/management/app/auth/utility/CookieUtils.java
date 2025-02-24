@@ -23,11 +23,11 @@ public class CookieUtils {
 	            .build();
 	}
 	
-	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request) {
+	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return Optional.empty();
 
         return Arrays.stream(request.getCookies())
-                .filter(cookie -> "refresh_token".equals(cookie.getName()))
+                .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
     }

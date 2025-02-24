@@ -476,8 +476,8 @@ public class UserController {
 	public <T> ResponseEntity<APIResponse<T>> refreshToken(@RequestHeader("X-User-Id") String userID,
 			HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
-		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request).orElse(null);
-		String message = "";
+		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);
+  	    String message = "";
 		String activityType = "Authentication-RefreshToken";
 		String apiEndPoint = "/api/users/refreshToken";
 		String httpMethod = HttpMethod.POST.name();
@@ -502,7 +502,7 @@ public class UserController {
 				String userName = claims.get("userName", String.class);
 				String userEmail = claims.get("userEmail", String.class);
 				// Add cookie to headers
-				HttpHeaders headers = createCookies(userName, userEmail, userid, refreshToken);
+				HttpHeaders headers = createCookies(userName, userEmail, userid, null);
 
 				HttpStatus httpStatus = HttpStatus.OK;
 				message = "Refresh token is successful.";
