@@ -173,7 +173,7 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";    
-	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID());
+	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
 			
 	        HttpStatus httpStatus = HttpStatus.OK;
 			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
@@ -502,10 +502,10 @@ public class UserController {
 				String userName = claims.get("userName", String.class);
 				String userEmail = claims.get("userEmail", String.class);
 				// Add cookie to headers
-				HttpHeaders headers = createCookies(userName, userEmail, userid);
+				HttpHeaders headers = createCookies(userName, userEmail, userid, refreshToken);
 
 				HttpStatus httpStatus = HttpStatus.OK;
-				message = "New token is generated successfully";
+				message = "Refresh token is successful.";
 				 
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
 				 userID, auditLogUserName, activityType, message,
@@ -636,9 +636,9 @@ public class UserController {
 		} 
 	}
 	
-	private HttpHeaders createCookies(String userName, String email, String userid) throws InvalidKeyException, Exception {	
+	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
 		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = jwtService.generateToken(userName, email, userid, true);
+		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
 
 		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false);
 		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true);
@@ -647,7 +647,9 @@ public class UserController {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
 		headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-		userService.saveRefreshToken(userid, newRefreshToken);
+		if (refreshToken == null) {
+			userService.saveRefreshToken(userid, newRefreshToken);
+		}
 			
 		return headers;
 	}
