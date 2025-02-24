@@ -13,7 +13,6 @@ import org.hibernate.annotations.UuidGenerator;
 @Getter
 @Setter
 @AllArgsConstructor
-@Table(name = "refresh_tokens")
 public class RefreshToken {
 
 	public RefreshToken() {

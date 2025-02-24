@@ -500,7 +500,7 @@ public class UserController {
 						apiEndPoint, httpMethod, message);
 
 			}
-			if (userService.verifyRefreshToken(refreshToken)) {
+			if (refreshTokenService.verifyRefreshToken(refreshToken)) {
 				Claims claims = jwtService.extractAllClaims(refreshToken);
 				String userid = claims.getSubject();
 				String userName = claims.get("userName", String.class);
@@ -510,7 +510,8 @@ public class UserController {
 
 				HttpStatus httpStatus = HttpStatus.OK;
 				message = "Refresh token is successful.";
-				 
+				
+				refreshTokenService.updateRefreshToken(refreshToken, true);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
 				 userID, auditLogUserName, activityType, message,
 				 apiEndPoint, auditLogResponseSuccess, httpMethod, "");

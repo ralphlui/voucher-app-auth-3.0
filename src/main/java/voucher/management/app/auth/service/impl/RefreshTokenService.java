@@ -7,10 +7,12 @@ import java.util.Date;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.RefreshTokenRepository;
 import voucher.management.app.auth.service.IRefreshTokenService;
 
@@ -53,6 +55,37 @@ public class RefreshTokenService implements IRefreshTokenService {
 			e.printStackTrace();
 			throw e;
 
+		}
+	}
+
+	public void updateRefreshToken(String token, Boolean revokded) {
+
+		try {
+			 String hashedToken = jwtService.hashWithSHA256(token);
+			 refreshTokenRepsitory.updateRefreshToken(revokded, LocalDateTime.now(), hashedToken);
+
+		} catch (Exception e) {
+			logger.error("Error occurred while updating refresh token, " + e.toString());
+			e.printStackTrace();
+			throw e;
+
+		}
+	}
+	
+	public Boolean verifyRefreshToken(String refreshToken) throws Exception {
+		try {
+			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 RefreshToken savedRefreshToken = refreshTokenRepsitory.findByToken(hashedToken);
+			if (savedRefreshToken == null) {
+				throw new UserNotFoundException("Invalid Refresh Token.");
+			}
+			UserDetails userDetails = jwtService.getUserDetail(refreshToken);
+			return jwtService.validateToken(refreshToken, userDetails);
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while verifying refresh token, " + e.toString());
+			e.printStackTrace();
+			throw e;
 		}
 	}
 }
