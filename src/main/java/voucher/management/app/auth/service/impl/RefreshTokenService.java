@@ -76,7 +76,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 		try {
 			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
 			 RefreshToken savedRefreshToken = refreshTokenRepsitory.findByToken(hashedToken);
-			if (savedRefreshToken == null) {
+			if (savedRefreshToken == null || savedRefreshToken.isRevoked()) {
 				throw new UserNotFoundException("Invalid Refresh Token.");
 			}
 			UserDetails userDetails = jwtService.getUserDetail(refreshToken);
