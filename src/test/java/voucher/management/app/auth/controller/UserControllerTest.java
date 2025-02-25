@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.Cookie;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -423,5 +424,23 @@ public class UserControllerTest {
 		        .andExpect(jsonPath("$.success").value(false))
 			    .andDo(print());
 
+	}
+	
+	@Test
+	public void testRefreshToken() throws Exception {
+		mockMvc.perform(
+				MockMvcRequestBuilders.post("/api/users/refreshToken").header("X-User-Id", testUser.getUserId()))
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.message").value("Refresh token is missing")).andDo(print());
+	}
+	
+	@Test
+	public void testVerifyToken() throws Exception {
+		
+		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+		mockMvc.perform(
+				MockMvcRequestBuilders.get("/api/users/verifyToken").header("X-User-Id", testUser.getUserId()))
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.message").value("Token is valid.")).andDo(print());
 	}
 }
