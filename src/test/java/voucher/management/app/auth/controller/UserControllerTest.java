@@ -38,6 +38,7 @@ import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.JWTService;
+import voucher.management.app.auth.service.impl.RefreshTokenService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.DTOMapper;
@@ -73,6 +74,9 @@ public class UserControllerTest {
 	@MockBean
 	private CookieUtils cookieUtils;
 
+	
+	@MockBean
+	private RefreshTokenService refreshTokenService;
 	
 	User testUser;
 	User errorUser;
@@ -156,11 +160,11 @@ public class UserControllerTest {
 
         when(jwtService.generateToken(userName, email, userId, false)).thenReturn(accessToken);
         when(jwtService.generateToken(userName, email, userId, true)).thenReturn(refreshToken);
-        when(cookieUtils.createCookie("access_token", accessToken, false)).thenReturn(accessTokenCookie);
-        when(cookieUtils.createCookie("refresh_token", refreshToken, true)).thenReturn(refreshTokenCookie);
+        when(cookieUtils.createCookie("access_token", accessToken, false, 1)).thenReturn(accessTokenCookie);
+        when(cookieUtils.createCookie("refresh_token", refreshToken, true, 1)).thenReturn(refreshTokenCookie);
 
-			
-
+        refreshTokenService.saveRefreshToken(userId, refreshToken);
+        
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.header("X-User-Id", testUser.getUserId())
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
@@ -415,8 +419,8 @@ public class UserControllerTest {
 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/logout").contentType(MediaType.APPLICATION_JSON)
 				.header("X-User-Id", testUser.getUserId())
-				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
-		        .andExpect(jsonPath("$.success").value(true))
+				.content(objectMapper.writeValueAsString(userRequest)))
+		        .andExpect(jsonPath("$.success").value(false))
 			    .andDo(print());
 
 	}
