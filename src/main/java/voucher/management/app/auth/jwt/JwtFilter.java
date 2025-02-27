@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -42,7 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 		
 		String authHeader = request.getHeader("Authorization");
-	    userID = request.getHeader("X-User-Id");
+	    userID = Optional.ofNullable(request.getHeader("X-User-Id")).orElse(AuditLogInvalidUser.InvalidUserID.toString());
 	    apiEndpoint = request.getRequestURI();
 	    httpMethod = request.getMethod();
 
