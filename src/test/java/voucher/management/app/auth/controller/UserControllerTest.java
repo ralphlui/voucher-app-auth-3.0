@@ -439,7 +439,7 @@ public class UserControllerTest {
 		
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 		mockMvc.perform(
-				MockMvcRequestBuilders.get("/api/users/verifyToken").header("X-User-Id", testUser.getUserId()))
+				MockMvcRequestBuilders.get("/api/users/validateToken").header("X-User-Id", testUser.getUserId()))
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Token is valid.")).andDo(print());
 	}

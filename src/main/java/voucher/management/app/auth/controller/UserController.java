@@ -539,11 +539,11 @@ public class UserController {
 
 	}
 	
-	@GetMapping("/verifyToken")
+	@GetMapping("/validateToken")
 	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("X-User-Id") String userID) {
 		
 		String activityType = "Authentication-VerifyToken";
-		String apiEndPoint = "/api/users/verifyToken";
+		String apiEndPoint = "/api/users/validateToken";
 		String httpMethod = HttpMethod.GET.name();
 		String message = "";
 		String activityDesc = "Verifying access token is failed due to ";
