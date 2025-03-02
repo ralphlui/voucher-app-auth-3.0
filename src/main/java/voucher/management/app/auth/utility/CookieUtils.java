@@ -13,21 +13,21 @@ import jakarta.servlet.http.Cookie;
 @Component
 public class CookieUtils {
 
-	public ResponseCookie createCookie(String name, String value, boolean httpOnly) {
+	public ResponseCookie createCookie(String name, String value, boolean httpOnly, long duration) {
 	    return ResponseCookie.from(name, value)
 	            .httpOnly(httpOnly)  // Secure access based on token type
 	            .secure(true)        // Ensure HTTPS only
 	            .path("/")           // Accessible across the app
-	            .maxAge(Duration.ofHours(1)) // More readable expiration
+	            .maxAge(Duration.ofHours(duration)) // More readable expiration
 	            .sameSite("Strict")  // CSRF protection
 	            .build();
 	}
 	
-	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request) {
+	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return Optional.empty();
 
         return Arrays.stream(request.getCookies())
-                .filter(cookie -> "refresh_token".equals(cookie.getName()))
+                .filter(cookie -> cookieName.equals(cookie.getName()))
                 .map(Cookie::getValue)
                 .findFirst();
     }

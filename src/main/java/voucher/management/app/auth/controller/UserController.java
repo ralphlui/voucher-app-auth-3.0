@@ -40,6 +40,7 @@ import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
+import voucher.management.app.auth.service.impl.RefreshTokenService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
 import voucher.management.app.auth.utility.CookieUtils;
@@ -68,6 +69,9 @@ public class UserController {
 	
 	@Autowired
 	private CookieUtils cookieUtils;
+	
+	@Autowired
+	private RefreshTokenService refreshTokenService;
 
 	
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
@@ -173,12 +177,9 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";    
-	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID());
-			
-	        HttpStatus httpStatus = HttpStatus.OK;
-			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
-			
+	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+	    
+			return handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);		
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED : HttpStatus.INTERNAL_SERVER_ERROR;
 			return handleResponseAndsendAuditLogForExceptionCase(e,
@@ -442,7 +443,7 @@ public class UserController {
 	
 	
 	@PostMapping(value = "/logout", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("X-User-Id") String userID) {
+	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("X-User-Id") String userID, HttpServletRequest request) {
 		logger.info("Call user update Preferences API...");
 		String message;
 		String activityType = "Authentication-Logout";
@@ -453,9 +454,18 @@ public class UserController {
 		try {
 			User user = userService.findByUserId(userID);
 			if (user != null) {
+				
+				ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
+				ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", "", true, 0);
+				HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
+				
+				
+				String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);   
+				refreshTokenService.updateRefreshToken(refreshToken, true);
+				
 				message = "User logout successfully";
 				return handleResponseAndsendAuditLogForSuccessCase(DTOMapper.toUserDTO(user),
-						activityType, message, apiEndPoint, httpMethod);
+						activityType, message, apiEndPoint, httpMethod, headers);
 			} else {
 				message = "User not found";
 				logger.error(message);
@@ -476,8 +486,8 @@ public class UserController {
 	public <T> ResponseEntity<APIResponse<T>> refreshToken(@RequestHeader("X-User-Id") String userID,
 			HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
-		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request).orElse(null);
-		String message = "";
+		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);
+  	    String message = "";
 		String activityType = "Authentication-RefreshToken";
 		String apiEndPoint = "/api/users/refreshToken";
 		String httpMethod = HttpMethod.POST.name();
@@ -496,17 +506,18 @@ public class UserController {
 						apiEndPoint, httpMethod, message);
 
 			}
-			if (userService.verifyRefreshToken(refreshToken)) {
+			if (refreshTokenService.verifyRefreshToken(refreshToken)) {
 				Claims claims = jwtService.extractAllClaims(refreshToken);
 				String userid = claims.getSubject();
 				String userName = claims.get("userName", String.class);
 				String userEmail = claims.get("userEmail", String.class);
 				// Add cookie to headers
-				HttpHeaders headers = createCookies(userName, userEmail, userid);
+				HttpHeaders headers = createCookies(userName, userEmail, userid, null);
 
 				HttpStatus httpStatus = HttpStatus.OK;
-				message = "New token is generated successfully";
-				 
+				message = "Refresh token is successful.";
+				
+				refreshTokenService.updateRefreshToken(refreshToken, true);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
 				 userID, auditLogUserName, activityType, message,
 				 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
@@ -528,11 +539,11 @@ public class UserController {
 
 	}
 	
-	@GetMapping("/verifyToken")
+	@GetMapping("/validateToken")
 	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("X-User-Id") String userID) {
 		
 		String activityType = "Authentication-VerifyToken";
-		String apiEndPoint = "/api/users/verifyToken";
+		String apiEndPoint = "/api/users/validateToken";
 		String httpMethod = HttpMethod.GET.name();
 		String message = "";
 		String activityDesc = "Verifying access token is failed due to ";
@@ -592,6 +603,13 @@ public class UserController {
 		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
 	}
 	
+	private ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO, String activityType, String message, String apiEndPoint, String httpMethod, HttpHeaders headers) {
+		logger.info(message);
+		HttpStatus httpStatus = HttpStatus.OK;
+		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(), userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+		return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
+	}
+	
 	private ResponseEntity<APIResponse<List<UserDTO>>> handleResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName, long totalRecord) {
 		logger.info(message);
 		HttpStatus httpStatus = HttpStatus.OK;
@@ -636,19 +654,27 @@ public class UserController {
 		} 
 	}
 	
-	private HttpHeaders createCookies(String userName, String email, String userid) throws InvalidKeyException, Exception {	
+	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
 		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = jwtService.generateToken(userName, email, userid, true);
+		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
 
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true);
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
 
 		// Add cookie to headers
+		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
+		if (refreshToken == null) {
+			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
+		}
+			
+		return headers;
+	}
+	
+	
+	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
 		HttpHeaders headers = new HttpHeaders();
 		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-		headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
-		userService.saveRefreshToken(userid, newRefreshToken);
-			
+		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
 		return headers;
 	}
 

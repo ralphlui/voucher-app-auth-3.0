@@ -38,12 +38,4 @@ public interface UserRepository extends JpaRepository<User, String> {
 	@Query("SELECT u FROM User u WHERE u.preferences LIKE %?1% AND u.isActive = ?2  AND u.isVerified = ?3  AND u.role = ?4")
 	Page<User> findByPreferences(String perferences, boolean isActive, boolean isVerified, RoleType role, Pageable pageable);
 	
-	@Modifying
-	@Transactional
-	@Query("UPDATE User u SET u.refreshToken = ?1  WHERE u.userId = ?2")
-	int saveRefreshToken(String token,  String userId);
-	
-	User findByRefreshToken(String token);
-	
-	
 }
