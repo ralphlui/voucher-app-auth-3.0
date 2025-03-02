@@ -4,13 +4,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
+import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,6 +24,7 @@ import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
+import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.GeneralUtility;
 
 import java.io.IOException;
@@ -35,6 +39,16 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	
 	@Autowired
 	private AuditLogService auditLogService;
+	
+	@Autowired
+	private CookieUtils cookieUtils;
+	
+	@Autowired
+	private JWTService jwtService;
+	
+	
+	@Autowired
+	private RefreshTokenService refreshTokenService;
 
 	private final String frontEndUrl;
 	private final String emailFrom;
@@ -61,78 +75,105 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
-		String message ="";
-		String activityType = "Authentication-CreateUser";
-		String apiEndPoint = "login/oauth2/code/google";
-		HttpStatus httpStatus ;
-		String email ="";
-		String name ="";
+		String message = "";
+	    String activityType = "Authentication-CreateUser";
+	    String apiEndPoint = "login/oauth2/code/google";
+	    HttpStatus httpStatus;
+	    String email = "";
+	    String name = "";
 
-		try {
-			OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
-			OAuth2User principal = oauthToken.getPrincipal();
+	    try {
+	        OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
+	        OAuth2User principal = oauthToken.getPrincipal();
 
-			 email = principal.getAttribute("email");
-			 name = principal.getAttribute("name");
-			logger.info("onAuthenticationSuccess: " + email);
-			
-			
-			if (userExists(email)) {
-				response.sendRedirect(frontEndUrl + "/dashboard");
-			} else {
-
-				// save in db with default role first and route role page
-				UserRequest user = new UserRequest();
-				user.setEmail(email);
-				user.setPassword(email);
-				user.setAuthProvider(AuthProvider.GOOGLE);
-				user.setUsername(name);
-				user.setRole(RoleType.CUSTOMER);
-				user.setActive(true);
-				user.setActive(true);
-				UserDTO userDTO = userService.createUser(user);
-				if (userDTO.getEmail().equals(email)) {
-					message = userDTO.getEmail() + " is created successfully";
-					logger.info(message);
-
-					response.sendRedirect(frontEndUrl + "/choose-role");
-					 httpStatus = HttpStatus.OK;
-					 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.SUCCESS.toString(), "GET", "");
-						
-				}else {
-					 httpStatus = HttpStatus.UNAUTHORIZED;
-					 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.FAILED.toString(), "GET", "");
-						
-				}
+	        email = principal.getAttribute("email");
+	        name = principal.getAttribute("name");
+	        logger.info("onAuthenticationSuccess: " + email);
+	     // Check if user exists
+	        User dbUser = userExists(email);
+			if (!GeneralUtility.makeNotNull(dbUser.getEmail()).equals("")) {
 				
-				
-			}
-		} catch (Exception e) {
-			message ="Exception occurred in onAuthenticationSuccess.";
-			logger.error("Exception occurred in onAuthenticationSuccess :" + e.toString());
-			httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, auditLogResponseFailure, "GET", "");
-		}
+	        	HttpHeaders headers = createCookies(dbUser.getUsername(),dbUser.getEmail(), dbUser.getUserId(),null);
+	        	 // Add cookies to response
+		        headers.forEach((key, values) -> values.forEach(value -> response.addHeader(key, value)));
+
+	            response.sendRedirect(frontEndUrl + "/dashboard");
+	        } else {
+	            // Save user with default role
+	            UserRequest user = new UserRequest();
+	            user.setEmail(email);
+	            user.setPassword(email);
+	            user.setAuthProvider(AuthProvider.GOOGLE);
+	            user.setUsername(name);
+	            user.setRole(RoleType.CUSTOMER);
+	            user.setActive(true);
+
+	            UserDTO userDTO = userService.createUser(user);
+	            if (userDTO.getEmail().equals(email)) {
+	                message = userDTO.getEmail() + " is created successfully";
+	                logger.info(message);
+
+	    			message = userDTO.getEmail() + " login successfully";    
+	    			HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+	    		    
+	    			
+	    	    	 // Add cookies to response
+	    	        headers.forEach((key, values) -> values.forEach(value -> response.addHeader(key, value)));
+
+	                response.sendRedirect(frontEndUrl + "/choose-role");
+	                httpStatus = HttpStatus.OK;
+	                auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.SUCCESS.toString(), "GET", "");
+	            } else {
+	                httpStatus = HttpStatus.UNAUTHORIZED;
+	                auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.FAILED.toString(), "GET", "");
+	            }
+	        }
+	    } catch (Exception e) {
+	        message = "Exception occurred in onAuthenticationSuccess.";
+	        logger.error("Exception occurred in onAuthenticationSuccess: " + e.toString());
+	        httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+	        auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), email, name, activityType, message, apiEndPoint, AuditLogResponseStatus.FAILED.toString(), "GET", "");
+	    }
 	}
 
-	public boolean userExists(String email) {
+	public User  userExists(String email) {
 		// Check if user exists in DB
+		User dbUser =null;
 		try {
 			if (!GeneralUtility.makeNotNull(email).equals("")) {
-				User dbUser = userService.findByEmail(email);
-
-				if (!GeneralUtility.makeNotNull(dbUser.getEmail()).equals("")) {
-					return true;
-				}
+				 dbUser = userService.findByEmail(email);
 
 			}
 		} catch (Exception e) {
 			logger.error("Exception occurred in userExists :" + e.toString());
 	
 		}
-		return false;
+		return dbUser ;
 
 	}
 	
+	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
+		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
+		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
+
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
+
+		// Add cookie to headers
+		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
+		if (refreshToken == null) {
+			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
+		}
+			
+		return headers;
+	}
+	
+	
+	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
+		return headers;
+	}
 	
 }
