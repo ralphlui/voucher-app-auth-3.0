@@ -1,8 +1,11 @@
 package voucher.management.app.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,29 +42,31 @@ import voucher.management.app.auth.utility.EncryptionUtils;
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class UserServiceTest {
-	
+
 	private static List<User> mockUsers = new ArrayList<>();
-	
+
 	@Autowired
 	private UserService userService;
-	
+
 	@MockBean
 	private UserRepository userRepository;
-	
+
 	@MockBean
 	private PasswordEncoder passwordEncoder;
-	
+
 	@MockBean
 	private EncryptionUtils encryptionUtils;
 
-	
 	private static User user;
 
 	private static UserRequest userRequest;
+
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true, new ArrayList<String>());
-		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(), userRequest.getRole(), true);
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true,
+				new ArrayList<String>());
+		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
+				userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
 		userRequest.setAuthProvider(AuthProvider.NATIVE);
 		user.setPreferences("food");
@@ -77,7 +82,6 @@ public class UserServiceTest {
 		userRequest = new UserRequest();
 
 	}
-
 
 	@Test
 	void getAllActiveUsers() {
@@ -97,7 +101,6 @@ public class UserServiceTest {
 		assertEquals(mockUsers.get(0).getEmail(), userDTOList.get(0).getEmail());
 
 	}
-	
 
 	@Test
 	void createUser() throws Exception {
@@ -110,18 +113,17 @@ public class UserServiceTest {
 		assertThat(createdUser.getEmail().equals("useradmin@gmail.com")).isTrue();
 
 	}
-	
+
 	@Test
-    public void testValidateUserLogin_Successful() {
-        
-        Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
-        Mockito.when(passwordEncoder.matches(user.getPassword(), user.getPassword())).thenReturn(true);
+	public void testValidateUserLogin_Successful() {
 
-        UserDTO result = userService.loginUser(user.getEmail(), user.getPassword());
+		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
+		Mockito.when(passwordEncoder.matches(user.getPassword(), user.getPassword())).thenReturn(true);
 
-        assertEquals(user.getEmail(), result.getEmail());
-    }
-	
+		UserDTO result = userService.loginUser(user.getEmail(), user.getPassword());
+
+		assertEquals(user.getEmail(), result.getEmail());
+	}
 
 	@Test
 	public void verifyUser() throws Exception {
@@ -137,7 +139,7 @@ public class UserServiceTest {
 		assertThat(user.isVerified()).isTrue();
 		assertThat(verifiedUser).isNotNull();
 	}
-	
+
 	@Test
 	void updateUser() throws Exception {
 
@@ -151,17 +153,17 @@ public class UserServiceTest {
 		assertThat(updatedUser.getUsername().equals("Admin")).isTrue();
 
 	}
-	
+
 	@Test
-    public void testFindByEmailAndStatus() {
-        
-        Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
+	public void testFindByEmailAndStatus() {
 
-        User result = userService.findByEmailAndStatus(user.getEmail(), true, true);
+		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
 
-        assertEquals(user, result);
-    }
-	
+		User result = userService.findByEmailAndStatus(user.getEmail(), true, true);
+
+		assertEquals(user, result);
+	}
+
 	@Test
 	void getAllActiveUsersByPreferences() throws Exception {
 
@@ -169,7 +171,8 @@ public class UserServiceTest {
 		Pageable pageable = PageRequest.of(0, 10);
 		Page<User> mockUserPages = new PageImpl<>(mockUsers, pageable, mockUsers.size());
 
-		Mockito.when(userRepository.findByPreferences("clothing", true, true, RoleType.CUSTOMER, pageable)).thenReturn(mockUserPages);
+		Mockito.when(userRepository.findByPreferences("clothing", true, true, RoleType.CUSTOMER, pageable))
+				.thenReturn(mockUserPages);
 		Map<Long, List<UserDTO>> userPages = userService.findUsersByPreferences("clothing", pageable);
 
 		for (Map.Entry<Long, List<UserDTO>> entry : userPages.entrySet()) {
@@ -179,29 +182,28 @@ public class UserServiceTest {
 		assertEquals(mockUsers.size(), userDTOList.size());
 		assertEquals(mockUsers.get(0).getEmail(), userDTOList.get(0).getEmail());
 	}
-	
+
 	@Test
 	void resetPassword() throws Exception {
 
 		Mockito.when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
 		Mockito.when(userRepository.save(user)).thenReturn(user);
-     
 
 		UserDTO updatedUser = userService.resetPassword(user.getUserId(), user.getPassword());
 		assertThat(updatedUser.getEmail().equals("useradmin@gmail.com")).isTrue();
 
 	}
-	
+
 	@Test
 	void checkSpecificActiveUser() throws Exception {
 
 		Mockito.when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
-     
+
 		UserDTO activeUser = userService.checkSpecificActiveUser(user.getUserId());
 		assertThat(activeUser.getEmail().equals(user.getEmail())).isTrue();
-		
+
 	}
-	
+
 	@Test
 	void deletePreferencesByUser() throws Exception {
 
@@ -210,12 +212,12 @@ public class UserServiceTest {
 		userRequest.setPreferences(deletedPreferenceList);
 		Mockito.when(userService.findByUserId(user.getUserId())).thenReturn(user);
 		Mockito.when(userRepository.save(user)).thenReturn(user);
-     
-	    UserDTO updateUser = userService.deletePreferencesByUser(userRequest.getUserId(), userRequest.getPreferences());
-	    assertEquals(updateUser.getPreferences(), null);
-		
+
+		UserDTO updateUser = userService.deletePreferencesByUser(userRequest.getUserId(), userRequest.getPreferences());
+		assertEquals(updateUser.getPreferences(), null);
+
 	}
-	
+
 	@Test
 	void updatePreferencesByUser() throws Exception {
 
@@ -223,11 +225,24 @@ public class UserServiceTest {
 		updatedPreferenceList.add("clothing");
 		Mockito.when(userService.findByUserId(user.getUserId())).thenReturn(user);
 		Mockito.when(userRepository.save(user)).thenReturn(user);
-     
-	    UserDTO updateUser = userService.updatePreferencesByUser(user.getUserId(),updatedPreferenceList);	
-	    assertEquals(updateUser.getPreferences().isEmpty(), false);
-	    assertEquals(updateUser.getPreferences().size(), 1);
-	    assertNotNull(updateUser.getPreferences());
+
+		UserDTO updateUser = userService.updatePreferencesByUser(user.getUserId(), updatedPreferenceList);
+		assertEquals(updateUser.getPreferences().isEmpty(), false);
+		assertEquals(updateUser.getPreferences().size(), 1);
+		assertNotNull(updateUser.getPreferences());
 	}
 
+	@Test
+	void updateUserRole() throws Exception {
+
+		Mockito.when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
+		Mockito.when(userRepository.findById(user.getUserId())).thenReturn(Optional.of(user));
+		Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(user);
+
+		UserDTO updatedUser = userService.updateRoleByUser(user.getUserId(), userRequest.getRole());
+
+		assertNotNull(updatedUser);
+		assertEquals("UserAdmin", updatedUser.getUsername());
+		assertEquals(RoleType.CUSTOMER, updatedUser.getRole());
+	}
 }

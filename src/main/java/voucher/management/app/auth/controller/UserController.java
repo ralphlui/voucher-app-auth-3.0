@@ -1,7 +1,9 @@
 package voucher.management.app.auth.controller;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,7 @@ import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
+import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
@@ -565,10 +568,61 @@ public class UserController {
 		}
 		
 	}
-
 	
-
 	
+	@PutMapping(value = "/{id}/roles", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(@RequestHeader("X-User-Id") String userID,
+	        @PathVariable("id") String id, @RequestBody UserRequest roleReq) {
+	    logger.info("Call user updateUserRole API...");
+	    String message;
+	    String activityType = "Authentication-UpdateUserRole";
+	    String apiEndPoint = String.format("api/users/%s/roles", id);
+	    String httpMethod = HttpMethod.PUT.name();
+	    String activityDesc = "Update User-Role failed due to ";
+
+	    try {
+	    	RoleType role = roleReq.getRole();
+	        
+
+	        if (role.equals(null) || role.equals("")) {
+	            message = "User Role is invalid.";
+	            logger.info("updateUserRole: " + message);
+	            HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
+	            ValidationResult validationResult = new ValidationResult();
+	            validationResult.setMessage(message);
+	            validationResult.setStatus(httpStatus);
+	            validationResult.setUserId(id);
+	            validationResult.setUserName(userID);
+	            return handleResponseAndsendAuditLogForValidationFailure(
+	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+	        }
+
+	        // Validate User ID
+	        ValidationResult validationResult = validateObjectByUseId(userID, id);
+
+	        if (validationResult.isValid()) {
+	        	// Get RoleType enum value
+	            // Update User Role
+	            UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
+	            message = "Role is updated successfully.";
+	            return handleResponseAndsendAuditLogForSuccessCase(userDTO,
+	                    activityType, message, apiEndPoint, httpMethod);
+	        } else {
+	        	
+	            return handleResponseAndsendAuditLogForValidationFailure(
+	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+	        }
+
+	    } catch (Exception e) {
+	        // Exception handling
+	        HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
+	                : HttpStatus.INTERNAL_SERVER_ERROR;
+	        return handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
+	                apiEndPoint, httpMethod);
+	    }
+	}
+
+
 	private ValidationResult validateObjectByUseId(String userID, String id) {
 		
 		String userId = id.isEmpty() ? userID : id;

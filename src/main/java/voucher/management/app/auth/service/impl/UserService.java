@@ -409,5 +409,32 @@ public class UserService implements IUserService  {
 		}
 	}
 
+	@Override
+	public UserDTO updateRoleByUser(String userId, RoleType role) {
+		try {
+			User dbUser = findByUserId(userId);
+			if (dbUser == null) {
+				logger.error("user by this updated role is not found.");
+				throw new UserNotFoundException("User not found.");
+			}
+			
+			dbUser.setRole(role);
+
+			dbUser.setUpdatedDate(LocalDateTime.now());
+
+			User updateUser = userRepository.save(dbUser);
+			logger.info("Role update is successful");
+			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
+			logger.info("Update Role "+updateUserDTO.getRole());
+			return updateUserDTO;
+
+		} catch (Exception e) {
+			logger.error("Error occurred while user update role, " + e.toString());
+			e.printStackTrace();
+			throw e;
+
+		}
+	}
+
 }
 

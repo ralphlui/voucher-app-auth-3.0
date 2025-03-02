@@ -1,5 +1,7 @@
 package voucher.management.app.auth.controller;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -32,18 +34,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import jakarta.servlet.http.Cookie;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
-import voucher.management.app.auth.service.impl.JWTService;
-import voucher.management.app.auth.service.impl.RefreshTokenService;
-import voucher.management.app.auth.service.impl.UserService;
-import voucher.management.app.auth.utility.CookieUtils;
-import voucher.management.app.auth.utility.DTOMapper;
-import voucher.management.app.auth.utility.EncryptionUtils;
+import voucher.management.app.auth.service.impl.*;
+import voucher.management.app.auth.utility.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -443,4 +440,55 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Token is valid.")).andDo(print());
 	}
+	
+	@Test
+	public void testUpdatedUserRole() throws Exception {
+	  
+	    testUser.setEmail("newemail@gmail.com");
+	    testUser.setVerified(true);
+	    testUser.setRole(RoleType.MERCHANT);
+	    testUser.setActive(true);
+
+	    // Mock behavior of the user service
+	    Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+	    Mockito.when(userService.updateRoleByUser(testUser.getUserId(),RoleType.MERCHANT)).thenReturn(DTOMapper.toUserDTO(testUser));
+
+	    UserRequest userRequest = new UserRequest();
+	    userRequest.setRole(RoleType.MERCHANT);
+	    
+
+	    mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", testUser.getUserId())
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .header("X-User-Id", testUser.getUserId())
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.message").value("Role is updated successfully."))
+	            .andExpect(jsonPath("$.data.username").value(testUser.getUsername()))
+	            .andExpect(jsonPath("$.data.email").value("newemail@gmail.com"))
+	            .andExpect(jsonPath("$.data.role").value(testUser.getRole().toString()))
+	            .andDo(print());
+
+	    // Error Case: Update with invalid user ID (e.g., empty X-User-Id)
+	    errorUser.setActive(false);
+	    UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser", RoleType.MERCHANT, false, new ArrayList<>());
+	    errorUserRequest.setUserId(errorUser.getUserId());
+
+	    // Mock behavior for the error user
+	    Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
+
+	    mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", errorUser.getUserId())
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .header("X-User-Id", "")
+	            .content(objectMapper.writeValueAsString(errorUserRequest)))
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(false))
+	            .andDo(print());
+
+	    
+	    verify(userService, times(1)).findByUserId(testUser.getUserId());
+	    verify(userService, times(1)).findByUserId(errorUser.getUserId());
+	}
+
+	
+	 
 }
