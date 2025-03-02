@@ -31,7 +31,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import io.jsonwebtoken.security.InvalidKeyException;
 
 @SpringBootTest
 @Transactional

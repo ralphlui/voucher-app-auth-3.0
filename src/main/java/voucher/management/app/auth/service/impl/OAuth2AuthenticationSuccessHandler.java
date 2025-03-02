@@ -42,10 +42,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	
 	@Autowired
 	private CookieUtils cookieUtils;
-	
-	@Autowired
-	private JWTService jwtService;
-	
+
 	
 	@Autowired
 	private RefreshTokenService refreshTokenService;
@@ -93,7 +90,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	        User dbUser = userExists(email);
 			if (!GeneralUtility.makeNotNull(dbUser.getEmail()).equals("")) {
 				
-	        	HttpHeaders headers = createCookies(dbUser.getUsername(),dbUser.getEmail(), dbUser.getUserId(),null);
+	        	HttpHeaders headers = cookieUtils.createCookies(dbUser.getUsername(),dbUser.getEmail(), dbUser.getUserId(),null);
 	        	 // Add cookies to response
 		        headers.forEach((key, values) -> values.forEach(value -> response.addHeader(key, value)));
 
@@ -114,7 +111,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	                logger.info(message);
 
 	    			message = userDTO.getEmail() + " login successfully";    
-	    			HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+	    			HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
 	    		    
 	    			
 	    	    	 // Add cookies to response
@@ -152,28 +149,5 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 
 	}
 	
-	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
-		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
-
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
-
-		// Add cookie to headers
-		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
-		if (refreshToken == null) {
-			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
-		}
-			
-		return headers;
-	}
-	
-	
-	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
-		return headers;
-	}
 	
 }
