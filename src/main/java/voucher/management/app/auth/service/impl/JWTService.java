@@ -37,7 +37,7 @@ public class JWTService {
 	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
 		long tokenValidDuration = isRefreshToken ? System.currentTimeMillis() + 24 * 60 * 60 * 1000
-				: System.currentTimeMillis() + 30 * 60 * 1000;
+				: System.currentTimeMillis() + 15 * 60 * 1000;
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
 		claims.put("userName", userName);
