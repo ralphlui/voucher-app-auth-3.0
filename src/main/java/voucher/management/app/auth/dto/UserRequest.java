@@ -16,6 +16,8 @@ public class UserRequest {
 	private List<String> preferences;
 	
     private AuthProvider authProvider;
+    
+    private int otp;
 
 	public UserRequest() {
 		super();
@@ -119,6 +121,14 @@ public class UserRequest {
 
 	public void setAuthProvider(AuthProvider authProvider) {
 		this.authProvider = authProvider;
+	}
+
+	public int getOtp() {
+		return otp;
+	}
+
+	public void setOtp(int otp) {
+		this.otp = otp;
 	}
 	
 	

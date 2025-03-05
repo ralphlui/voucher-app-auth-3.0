@@ -19,47 +19,72 @@ import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
 @RestController
 @RequestMapping("/api/otp")
 public class OTPController {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-    @Autowired
-    private OTPStorageService otpService;
-    
-    @Autowired
+	@Autowired
+	private OTPStorageService otpService;
+
+	@Autowired
 	private UserValidationStrategy userValidationStrategy;
-	
-    
-    @PostMapping("/generate")
-    public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestBody UserRequest userRequest) {
-    	try {
-    	//check userEmail is valid 
-    	logger.info("Reset Password : " + userRequest.getEmail());
-    	ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
-    	if (!validationResult.isValid()) {
-			
-			logger.error("generateOtp Error: " + validationResult.getMessage());
-			return ResponseEntity.status(validationResult.getStatus()).body(APIResponse.error(validationResult.getMessage()));			
-		}
-    	
-    	
-    	int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
-       // otpService.sendOTPEmail(email, otp);
-        
-        String message ="";
-        if(otp>0) {
-        	message ="OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
-        }
-        return ResponseEntity.status(HttpStatus.OK).body(APIResponse.success(message));
-        
-    
-    	} catch (Exception e) {
-    		String message = "OTP code generation failed.";
-    		logger.error("generateOtp Error: " +message );
-    		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(APIResponse.error(message));			
+
+	@PostMapping("/generate")
+	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestBody UserRequest userRequest) {
+		try {
+			// check userEmail is valid
+			logger.info("Reset Password : " + userRequest.getEmail());
+			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
+			if (!validationResult.isValid()) {
+
+				logger.error("generateOtp Error: " + validationResult.getMessage());
+				return ResponseEntity.status(validationResult.getStatus())
+						.body(APIResponse.error(validationResult.getMessage()));
+			}
+
+			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
+			// otpService.sendOTPEmail(email, otp);
+
+			String message = "";
+			if (otp > 0) {
+				message = "OTP sent to "+otp + userRequest.getEmail() + ". It is valid for 10 minutes.";
+			}
+			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.success(message));
+
+		} catch (Exception e) {
+			String message = "OTP code generation failed.";
+			logger.error("generateOtp Error: " + message);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(APIResponse.error(message));
 		}
 	}
 
-  
+	@PostMapping("/validate")
+	public ResponseEntity<APIResponse<UserDTO>> validateOtp(@RequestBody UserRequest userRequest) {
+		try {
+
+			logger.info("Reset Password : " + userRequest.getEmail());
+			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
+			if (!validationResult.isValid()) {
+
+				logger.error("generateOtp Error: " + validationResult.getMessage());
+				return ResponseEntity.status(validationResult.getStatus())
+						.body(APIResponse.error(validationResult.getMessage()));
+			}
+
+			String message = "";
+			boolean isValid = otpService.validateOTP(userRequest.getEmail(), userRequest.getOtp());
+			if (isValid) {
+				message = "OTP is valid.";
+			} else {
+				message = "OTP expired or incorrect";
+			}
+
+			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.success(message));
+
+		} catch (Exception e) {
+			String message = "OTP code validation failed.";
+			logger.error("validateOtp Error: " + message);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(APIResponse.error(message));
+		}
+	}
+
 }
-
-

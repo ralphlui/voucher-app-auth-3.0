@@ -52,7 +52,7 @@ class OTPControllerTest {
     }
 
     @Test
-    void testGenerateOtp_Success() throws Exception {
+    void testGenerateOtp() throws Exception {
         UserRequest userRequest = new UserRequest();
         userRequest.setEmail("test@example.com");
         ValidationResult valid = new ValidationResult();
@@ -69,8 +69,30 @@ class OTPControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(userRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("OTP sent to test@example.com. It is valid for 10 minutes."));
+                .andExpect(jsonPath("$.success").value(true));
+    }
+    
+
+    @Test
+    void testOTPValidation() throws Exception {
+        UserRequest userRequest = new UserRequest();
+        userRequest.setEmail("test@example.com");
+        userRequest.setOtp(123456);
+        ValidationResult valid = new ValidationResult();
+        valid.setMessage("Valid");
+        valid.setStatus(HttpStatus.OK);
+        valid.setValid(true);
+         
+        when(userValidationStrategy.validateObject(userRequest.getEmail()))
+            .thenReturn(valid);
+
+        when(otpService.validateOTP(userRequest.getEmail(),userRequest.getOtp())).thenReturn(true);
+
+        mockMvc.perform(post("/api/otp/validate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(userRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
 

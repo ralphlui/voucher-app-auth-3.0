@@ -18,6 +18,15 @@ public class OTPStorageService {
         otpCache.put(email, otp);
         return otp;
     }
+    
+    public boolean validateOTP(String email, int otp) {
+        Integer storedOtp = otpCache.getIfPresent(email);
+        if (storedOtp == null || storedOtp != otp) {
+            return false;    
+        }
+        otpCache.invalidate(email);
+        return true;
+    }
 
     
 }
