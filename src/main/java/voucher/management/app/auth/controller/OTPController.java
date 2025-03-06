@@ -64,12 +64,14 @@ public class OTPController {
 			}
 
 			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
-			// otpService.sendOTPEmail(email, otp);
+			
 
 			if (otp > 0) {
 				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
-			// otpService.sendOTPEmail(email, otp);
+			
+			//TO Sent Email...
+			
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
