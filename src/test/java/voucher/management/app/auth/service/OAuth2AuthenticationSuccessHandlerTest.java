@@ -128,9 +128,7 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 	    existingUser.setUserId("123");
 
 	    when(userService.findByEmail("user@example.com")).thenReturn(existingUser);
-	    when(cookieUtils.createCookie(any(), any(), anyBoolean(), anyInt())).thenReturn(null);
-	    
- 
+	      
 	    authSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
 	}

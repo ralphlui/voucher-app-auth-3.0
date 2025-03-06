@@ -81,7 +81,7 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	        name = principal.getAttribute("name");
 	        logger.info("onAuthenticationSuccess: " + email);
 	     // Check if user exists
-	        User dbUser = userExists(email);
+	        User dbUser = userService.findByEmail(email);
 			if (!GeneralUtility.makeNotNull(dbUser.getEmail()).equals("")) {
 				
 	        	HttpHeaders headers = cookieUtils.createCookies(dbUser.getUsername(),dbUser.getEmail(), dbUser.getUserId(),null);
@@ -127,21 +127,5 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	    }
 	}
 
-	public User  userExists(String email) {
-		// Check if user exists in DB
-		User dbUser =null;
-		try {
-			if (!GeneralUtility.makeNotNull(email).equals("")) {
-				 dbUser = userService.findByEmail(email);
-
-			}
-		} catch (Exception e) {
-			logger.error("Exception occurred in userExists :" + e.toString());
-	
-		}
-		return dbUser ;
-
-	}
-	
 	
 }
