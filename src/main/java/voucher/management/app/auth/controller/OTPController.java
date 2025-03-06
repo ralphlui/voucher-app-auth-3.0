@@ -20,6 +20,7 @@ import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.OTPStorageService;
 import voucher.management.app.auth.service.impl.UserService;
+import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
 import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
 
 @RestController
@@ -38,14 +39,9 @@ public class OTPController {
 	private UserService userService;
 
 	@Autowired
-	private AuditLogService auditLogService;
+	private APIResponseStrategy apiResponseStrategy;
 
-	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
-	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
-	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
-	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
-	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
-
+	
 	@PostMapping("/generate")
 	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestHeader("X-User-Id") String userID,
 			@RequestBody UserRequest userRequest) {
@@ -63,28 +59,29 @@ public class OTPController {
 			if (!validationResult.isValid()) {
 
 				logger.error("Generate OTP validation is not successful");
-				return handleResponseAndsendAuditLogForValidationFailure(validationResult, activityType, activityDesc,
-						apiEndPoint, httpMethod);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
+						activityType, activityDesc, apiEndPoint, httpMethod);
 			}
 
 			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
 			// otpService.sendOTPEmail(email, otp);
 
 			if (otp > 0) {
-				message = "OTP sent to "+ userRequest.getEmail() + ". It is valid for 10 minutes.";
+				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			// otpService.sendOTPEmail(email, otp);
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
-			return handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod);
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+					apiEndPoint, httpMethod);
 
 		} catch (Exception e) {
 			message = "OTP code generation failed.";
 			logger.error("generateOtp Error: " + message);
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
-			return handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
-					apiEndPoint, httpMethod);
+			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
+					activityDesc, apiEndPoint, httpMethod);
 		}
 	}
 
@@ -105,8 +102,8 @@ public class OTPController {
 			if (!validationResult.isValid()) {
 
 				logger.error("Generate OTP validation is not successful");
-				return handleResponseAndsendAuditLogForValidationFailure(validationResult, activityType, activityDesc,
-						apiEndPoint, httpMethod);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
+						activityType, activityDesc, apiEndPoint, httpMethod);
 			}
 
 			message = "";
@@ -119,7 +116,8 @@ public class OTPController {
 
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
-			return handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod);
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+					apiEndPoint, httpMethod);
 
 		} catch (Exception e) {
 			message = "OTP code validation failed.";
@@ -127,45 +125,10 @@ public class OTPController {
 			logger.error("validateOtp Error: " + message);
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
-			return handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
-					apiEndPoint, httpMethod);
+			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
+					activityDesc, apiEndPoint, httpMethod);
 
 		}
-	}
-
-	private ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForValidationFailure(
-			ValidationResult validationResult, String activityType, String activityDesc, String apiEndPoint,
-			String httpMethod) {
-		String message = validationResult.getMessage();
-		logger.error(message);
-		activityDesc = activityDesc.concat(message);
-		auditLogService.sendAuditLogToSqs(Integer.toString(validationResult.getStatus().value()),
-				validationResult.getUserId(), validationResult.getUserName(), activityType, activityDesc, apiEndPoint,
-				auditLogResponseFailure, httpMethod, message);
-		return ResponseEntity.status(validationResult.getStatus())
-				.body(APIResponse.error(validationResult.getMessage()));
-
-	}
-
-	private ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
-			String activityType, String message, String apiEndPoint, String httpMethod) {
-		logger.info(message);
-		HttpStatus httpStatus = HttpStatus.OK;
-		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userDTO.getUserID(),
-				userDTO.getUsername(), activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
-	}
-
-	private <T> ResponseEntity<APIResponse<T>> handleResponseAndsendAuditLogForExceptionCase(Exception e,
-			HttpStatusCode htpStatuscode, String activityType, String activityDesc, String apiEndPoint,
-			String httpMethod) {
-		String message = e.getMessage();
-		String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
-		logger.error("Error: " + message);
-		activityDesc = activityDesc.concat(message);
-		auditLogService.sendAuditLogToSqs(Integer.toString(htpStatuscode.value()), auditLogUserId, auditLogUserName,
-				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, message);
-		return ResponseEntity.status(htpStatuscode).body(APIResponse.error(responseMessage));
 	}
 
 }

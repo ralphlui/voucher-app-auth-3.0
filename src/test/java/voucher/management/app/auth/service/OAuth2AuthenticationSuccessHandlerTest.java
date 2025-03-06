@@ -22,6 +22,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
@@ -49,12 +51,7 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 
 	@Mock
 	private CookieUtils cookieUtils;
-
-	@Mock
-	private JWTService jwtService;
-
-	@Mock
-	private RefreshTokenService refreshTokenService;
+ 
 
 	@Mock
 	private OAuth2AuthenticationToken authentication;
@@ -70,28 +67,24 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 
 		ReflectionTestUtils.setField(authSuccessHandler, "auditLogService", auditLogService);
 		ReflectionTestUtils.setField(authSuccessHandler, "userService", userService);
-		ReflectionTestUtils.setField(authSuccessHandler, "cookieUtils", cookieUtils);
-		ReflectionTestUtils.setField(authSuccessHandler, "jwtService", jwtService);
-		ReflectionTestUtils.setField(authSuccessHandler, "refreshTokenService", refreshTokenService);
+		ReflectionTestUtils.setField(authSuccessHandler, "cookieUtils", cookieUtils); 
 	}
 
 	@Test
 	void testOnAuthenticationSuccess_NewUser() throws Exception {
-		// Mock authentication
+	
 		OAuth2AuthenticationToken authToken = mock(OAuth2AuthenticationToken.class);
 		OAuth2User principal = mock(OAuth2User.class);
 		when(authToken.getPrincipal()).thenReturn(principal);
 		when(principal.getAttribute("email")).thenReturn("test@example.com");
 		when(principal.getAttribute("name")).thenReturn("Test User");
 
-		// Mock user service response
 		when(userService.findByEmail(anyString())).thenReturn(null);
 
 		UserDTO userDTO = new UserDTO();
 		userDTO.setEmail("test@example.com");
 		when(userService.createUser(any(UserRequest.class))).thenReturn(userDTO);
 
-		// Mock response
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
@@ -103,14 +96,27 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 
 	@Test
 	void testOnAuthenticationSuccess_ExistingUser() throws Exception {
-	    // Mock request and response
+	    
 	    HttpServletRequest request = mock(HttpServletRequest.class);
 	    HttpServletResponse response = mock(HttpServletResponse.class);
 
-	    // Mock user details
 	    Map<String, Object> attributes = new HashMap<>();
 	    attributes.put("email", "user@example.com");
 	    attributes.put("name", "Test User");
+	    String accessToken = "access-token";
+        String refreshToken = "refresh-token";
+        
+      
+	    ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).build();
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).build();
+
+        HttpHeaders mockHeaders = new HttpHeaders();
+        mockHeaders.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+        mockHeaders.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+        when(cookieUtils.createHttpHeader(any(), any())).thenReturn(mockHeaders);
+        when(cookieUtils.createCookies(any(), any(), any(), any())).thenReturn(mockHeaders);
+
 
 	    OAuth2User oAuth2User = new DefaultOAuth2User(Collections.emptyList(), attributes, "email");
 	    OAuth2AuthenticationToken authentication = mock(OAuth2AuthenticationToken.class);
@@ -122,17 +128,11 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 	    existingUser.setUserId("123");
 
 	    when(userService.findByEmail("user@example.com")).thenReturn(existingUser);
-	    when(jwtService.generateToken(any(), any(), any(), anyBoolean())).thenReturn("mockToken");
 	    when(cookieUtils.createCookie(any(), any(), anyBoolean(), anyInt())).thenReturn(null);
-
-	    // Call the method
+	    
+ 
 	    authSuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-	    // Verify audit log is called
-	    verify(auditLogService, times(1)).sendAuditLogToSqs(any(), any(), any(), any(), any(), any(), any(), any(), any());
-
-	    // Verify redirect to dashboard
-	   // verify(response, times(1)).sendRedirect(frontEndUrl + "/dashboard");
 	}
 
 }

@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -23,7 +22,6 @@ import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
-import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.GeneralUtility;
 
@@ -44,15 +42,11 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	private CookieUtils cookieUtils;
 
 	
-	@Autowired
-	private RefreshTokenService refreshTokenService;
 
 	private final String frontEndUrl;
 	private final String emailFrom;
 	private final String sqsUrl;
 	
-	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
-	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
 	
 
 	@Autowired
