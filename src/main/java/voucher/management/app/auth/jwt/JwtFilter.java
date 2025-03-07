@@ -5,13 +5,16 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
+import voucher.management.app.auth.service.impl.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,6 +36,10 @@ public class JwtFilter extends OncePerRequestFilter {
 	
 	@Autowired
 	private AuditLogService auditLogService;
+	
+	@Autowired
+	@Lazy
+	private UserService userService;
 	
 	private String userID;
 	private String apiEndpoint;
@@ -85,6 +92,16 @@ public class JwtFilter extends OncePerRequestFilter {
 	
 	private void handleException(HttpServletResponse response, String message, int status) throws IOException {
 		TokenErrorResponse.sendErrorResponse(response, message, status, "UnAuthorized");
-		auditLogService.sendAuditLogToSqs(Integer.toString(status), userID, AuditLogInvalidUser.InvalidUserName.toString(), "", message, apiEndpoint, AuditLogResponseStatus.FAILED.toString(), httpMethod, message);
+		String userName =  AuditLogInvalidUser.InvalidUserName.toString();
+		
+		if (userID != AuditLogInvalidUser.InvalidUserID.toString() && !userID.isEmpty()) {
+			User user = userService.findByUserId(userID);
+			userName = Optional.ofNullable(user)
+			                   .map(User::getUsername)
+			                   .orElse(AuditLogInvalidUser.InvalidUserName.toString());
+
+			
+		}
+		auditLogService.sendAuditLogToSqs(Integer.toString(status), userID, userName, "", message, apiEndpoint, AuditLogResponseStatus.FAILED.toString(), httpMethod, message);
 	}
 }

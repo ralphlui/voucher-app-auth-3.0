@@ -72,6 +72,7 @@ public class OTPController {
 			
 			//TO Sent Email...
 			
+			otpService.sendOtpEmail(otp, userRequest.getEmail());
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
