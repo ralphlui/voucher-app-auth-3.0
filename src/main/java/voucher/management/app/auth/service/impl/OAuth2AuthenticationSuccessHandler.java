@@ -82,7 +82,8 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
 	        logger.info("onAuthenticationSuccess: " + email);
 	     // Check if user exists
 	        User dbUser = userService.findByEmail(email);
-			if (!GeneralUtility.makeNotNull(dbUser.getEmail()).equals("")) {
+	        
+			if (dbUser != null) {
 				
 	        	HttpHeaders headers = cookieUtils.createCookies(dbUser.getUsername(),dbUser.getEmail(), dbUser.getUserId(),null);
 	        	 // Add cookies to response

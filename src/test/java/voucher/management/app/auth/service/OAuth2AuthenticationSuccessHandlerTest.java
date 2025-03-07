@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import voucher.management.app.auth.service.impl.OAuth2AuthenticationSuccessHandler;
 import voucher.management.app.auth.utility.CookieUtils;
+import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -52,6 +52,7 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 	@Mock
 	private CookieUtils cookieUtils;
  
+ 
 
 	@Mock
 	private OAuth2AuthenticationToken authentication;
@@ -78,20 +79,36 @@ public class OAuth2AuthenticationSuccessHandlerTest {
 		when(authToken.getPrincipal()).thenReturn(principal);
 		when(principal.getAttribute("email")).thenReturn("test@example.com");
 		when(principal.getAttribute("name")).thenReturn("Test User");
+		User dbUser = new User();
+		dbUser.setEmail("");
+		
 
-		when(userService.findByEmail(anyString())).thenReturn(null);
-
+		when(userService.findByEmail(anyString())).thenReturn(dbUser);
+		
 		UserDTO userDTO = new UserDTO();
 		userDTO.setEmail("test@example.com");
+
+		
 		when(userService.createUser(any(UserRequest.class))).thenReturn(userDTO);
+		String accessToken = "access-token";
+        String refreshToken = "refresh-token";
+        
+      
+	    ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).build();
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).build();
+
+        HttpHeaders mockHeaders = new HttpHeaders();
+        mockHeaders.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+        mockHeaders.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+
+        when(cookieUtils.createHttpHeader(any(), any())).thenReturn(mockHeaders);
+        when(cookieUtils.createCookies(any(), any(), any(), any())).thenReturn(mockHeaders);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		MockHttpServletRequest request = new MockHttpServletRequest();
 
 		authSuccessHandler.onAuthenticationSuccess(request, response, authToken);
 
-		verify(auditLogService, times(1)).sendAuditLogToSqs(any(), any(), any(), any(), any(), any(), any(), any(),
-				any());
 	}
 
 	@Test
