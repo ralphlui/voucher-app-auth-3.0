@@ -68,7 +68,7 @@ public class UserServiceTest {
 		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
-		userRequest.setAuthProvider(AuthProvider.NATIVE);
+		userRequest.setAuthProvider(AuthProvider.GOOGLE);
 		user.setPreferences("food");
 		user.setUserId(userRequest.getUserId());
 		user.setAuthProvider(userRequest.getAuthProvider());

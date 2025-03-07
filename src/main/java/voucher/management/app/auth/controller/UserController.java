@@ -24,6 +24,7 @@ import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.*;
@@ -127,7 +128,7 @@ public class UserController {
 			ValidationResult validationResult = userValidationStrategy.validateCreation(userRequest);
 			auditLogUserName = validationResult.getUserName();
 			if (validationResult.isValid()) {
-
+				userRequest.setAuthProvider(AuthProvider.NATIVE);
 				UserDTO userDTO = userService.createUser(userRequest);
 				message = userRequest.getEmail() + " is created successfully";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO,

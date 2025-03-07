@@ -87,23 +87,29 @@ public class UserService implements IUserService  {
 			user.setUsername(userReq.getUsername());
 			String encodedPassword = passwordEncoder.encode(userReq.getPassword());
 			user.setPassword(encodedPassword);
-			String code = UUID.randomUUID().toString();
-			user.setVerificationCode(code);
-			user.setAuthProvider(userReq.getAuthProvider());
-			if(user.getAuthProvider().equals(AuthProvider.GOOGLE)) {
+			
+			
+			if(userReq.getAuthProvider().equals(AuthProvider.GOOGLE)) {
 				user.setVerified(true);
+				user.setAuthProvider(AuthProvider.GOOGLE);
+				user.setVerificationCode("");
 			}else {
 			user.setVerified(false);
+			user.setAuthProvider(AuthProvider.NATIVE);
+			String code = UUID.randomUUID().toString();
+			
+			user.setVerificationCode(code);
 			}
 			user.setActive(true);
 			user.setRole(userReq.getRole());
-			user.setAuthProvider(userReq.getAuthProvider());
+			
 			user.setCreatedDate(LocalDateTime.now());
 			String preferences = formatPreferencesString(userReq.getPreferences());
 			user.setPreferences(preferences);
 			logger.info("Create User...");
 			User createdUser = userRepository.save(user);
-
+			
+			if(!userReq.getAuthProvider().equals(AuthProvider.GOOGLE)) {
 			if (createdUser == null) {
 				throw new Exception("User registration is not successful");
 			}
@@ -111,6 +117,7 @@ public class UserService implements IUserService  {
 			String verificationCode = encryptionUtils.encrypt(createdUser.getVerificationCode());
 			logger.info("verification code" + verificationCode);
 			sendVerificationEmail(createdUser);
+			}
 
 			UserDTO userDTO = DTOMapper.toUserDTO(createdUser);
 			return userDTO;
