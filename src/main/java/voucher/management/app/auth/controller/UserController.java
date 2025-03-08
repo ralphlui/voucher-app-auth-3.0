@@ -72,7 +72,7 @@ public class UserController {
 	
 
 	@GetMapping(value = "", produces = "application/json")
-	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "500") int size) {
 		logger.info("Call user getAll API with page={}, size={}", page, size);
 		String message = "";
@@ -251,7 +251,7 @@ public class UserController {
 	}
 
 	@PutMapping(value = "/{id}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
 		logger.info("Call user update API...");
 		String message;
@@ -288,7 +288,7 @@ public class UserController {
 	}
 
 	@GetMapping(value = "/{id}/active", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(@RequestHeader("X-User-Id") String userID, @PathVariable("id") String id) {
+	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id) {
 		logger.info("Call user active API...");
 		logger.info("User ID" + id);
 		String message = "";
@@ -323,7 +323,7 @@ public class UserController {
 	}
 
 	@GetMapping(value = "/preferences/{name}", produces = "application/json")
-	public ResponseEntity<APIResponse<List<UserDTO>>> getAllUsersByPreferences(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<List<UserDTO>>> getAllUsersByPreferences(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 			@PathVariable("name") String name, @RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "500") int size) {
 		logger.info("Call user getAll API By Preferences with page={}, size={}", page, size);
@@ -364,7 +364,7 @@ public class UserController {
 	}
 	
 	@DeleteMapping(value = "/{id}/preferences", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> deletePreferenceByUser(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> deletePreferenceByUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
 		logger.info("Call user Delete Preferences API...");
 		String message;
@@ -398,7 +398,7 @@ public class UserController {
 	
 	
 	@PatchMapping(value = "/{id}/preferences", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updatePreferenceByUser(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> updatePreferenceByUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
 		logger.info("Call user update Preferences API...");
 		String message;
@@ -558,7 +558,7 @@ public class UserController {
 	
 	
 	@PutMapping(value = "/{id}/roles", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
 	        @PathVariable("id") String id, @RequestBody UserRequest roleReq) {
 	    logger.info("Call user updateUserRole API...");
 	    String message;
