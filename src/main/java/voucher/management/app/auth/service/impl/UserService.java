@@ -280,33 +280,6 @@ public class UserService implements IUserService  {
 	}
 
 	@Override
-	public Map<Long, List<UserDTO>> findUsersByPreferences(String preferences, Pageable pageable) {
-		Map<Long, List<UserDTO>> result = new HashMap<>();
-		try {
-			Page<User> userPages = userRepository.findByPreferences(preferences, true, true, RoleType.CUSTOMER, pageable);
-			long totalRecord = userPages.getTotalElements();
-			List<UserDTO> userDTOList = new ArrayList<>();
-			if (totalRecord > 0) {
-				logger.info("Active User list by preferences is found");
-				for (User user : userPages.getContent()) {
-					UserDTO userDTO = DTOMapper.toUserDTO(user);
-					userDTOList.add(userDTO);
-				}
-
-			} else {
-				logger.error("User not found...");
-			}
-			result.put(totalRecord, userDTOList);
-			return result;
-
-		} catch (Exception ex) {
-			logger.error("findByIsActiveTrue exception... {}", ex.toString());
-			throw ex;
-
-		}
-	}
-
-	@Override
 	public UserDTO resetPassword(String userId, String password) {
 		try {
 			User dbUser = findByUserIdAndStatus(userId, true, true);
@@ -347,74 +320,6 @@ public class UserService implements IUserService  {
 		}
 	}
 
-	@Override
-	public UserDTO deletePreferencesByUser(String userId, List<String> preferences) throws Exception {
-		try {
-			User dbUser = findByUserId(userId);
-			if (dbUser == null) {
-			    logger.error("user by this deleted preference is not found.");
-				throw new UserNotFoundException("User not found.");
-			}
-			
-			 String existingPreferencesStr = dbUser.getPreferences();
-			    if (existingPreferencesStr == null || existingPreferencesStr.isEmpty()) {
-			        throw new UserNotFoundException("No existing user preferences to delete.");
-			    }
-			    
-			    List<String> existingPreferencesList = new ArrayList<>(Arrays.asList(existingPreferencesStr.split(",")));
-			    List<String> deletedPreferences = preferences;
-			    deletedPreferences.replaceAll(String::trim);
-			    
-			    List<String> updatedPreferences = new ArrayList<>(existingPreferencesList);
-			    updatedPreferences.removeAll(deletedPreferences);
-			    
-			    if (updatedPreferences.size() == existingPreferencesList.size()) {
-			        throw new UserNotFoundException("The requested preferences do not exist and cannot be deleted.");
-			    }
-
-			    dbUser.setPreferences(String.join(",", updatedPreferences));
-			    dbUser.setUpdatedDate(LocalDateTime.now());
-			    logger.info("preference deletion ...");
-				User updateUser = userRepository.save(dbUser);
-				logger.info("preference deletion is successful");
-				UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-				return updateUserDTO;
-			
-		} catch (Exception e) {
-			logger.error("Error occurred while user deleting preferences, " + e.toString());
-			e.printStackTrace();
-			throw e;
-
-		}
-	}
-	
-	@Override
-	public UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception {
-		try {
-			User dbUser = findByUserId(userId);
-			if (dbUser == null) {
-				logger.error("user by this updated preference is not found.");
-				throw new UserNotFoundException("User not found.");
-			}
-
-			String updatedPreferences = formatPreferencesString(preferences);
-			dbUser.setPreferences(updatedPreferences.trim());
-
-			dbUser.setUpdatedDate(LocalDateTime.now());
-
-			User updateUser = userRepository.save(dbUser);
-			logger.info("preference update is successful");
-			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-			logger.info("Update Preferences size "+updateUserDTO.getPreferences().size());
-			return updateUserDTO;
-
-		} catch (Exception e) {
-			logger.error("Error occurred while user deleting preferences, " + e.toString());
-			e.printStackTrace();
-			throw e;
-
-		}
-	}
 
 	@Override
 	public UserDTO updateRoleByUser(String userId, RoleType role) {
