@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -72,7 +73,7 @@ public class UserController {
 	
 
 	@GetMapping(value = "", produces = "application/json")
-	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
+	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(@RequestHeader("Authorization") String authorizationHeader,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "500") int size) {
 		logger.info("Call user getAll API with page={}, size={}", page, size);
 		String message = "";
@@ -83,6 +84,7 @@ public class UserController {
 		
 
 		try {
+			String userID = retrieveUserID(authorizationHeader);
 			getUserByUserID(userID);
 			
 			Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
@@ -251,7 +253,7 @@ public class UserController {
 	}
 
 	@PutMapping(value = "/{id}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
+	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader,
 			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
 		logger.info("Call user update API...");
 		String message;
@@ -261,7 +263,7 @@ public class UserController {
 		String activityDesc = "Update User failed due to ";
 
 		try {
-			String userId = id.isEmpty() ? userID : id;
+			String userId = retrieveUserID(authorizationHeader);
 			ValidationResult validationResult = userValidationStrategy.validateUpdating(userId);
 			auditLogUserId = validationResult.getUserId();
 			auditLogUserName = validationResult.getUserName();
@@ -288,7 +290,7 @@ public class UserController {
 	}
 
 	@GetMapping(value = "/{id}/active", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id) {
+	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id) {
 		logger.info("Call user active API...");
 		logger.info("User ID" + id);
 		String message = "";
@@ -298,6 +300,7 @@ public class UserController {
 		String activityDesc = "Retrieving active user by id failed due to ";
 
 		try {
+			String userID = retrieveUserID(authorizationHeader);
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userID, id);
 			
 			if (!validationResult.isValid()) {
@@ -433,7 +436,7 @@ public class UserController {
 	
 	
 	@PostMapping(value = "/logout", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("X-User-Id") String userID, HttpServletRequest request) {
+	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
 		logger.info("Call user update Preferences API...");
 		String message;
 		String activityType = "Authentication-Logout";
@@ -442,6 +445,7 @@ public class UserController {
 		String activityDesc = "Logging out user is failed due to ";
 
 		try {
+			String userID = retrieveUserID(authorizationHeader);
 			User user = userService.findByUserId(userID);
 			if (user != null) {
 				
@@ -530,7 +534,7 @@ public class UserController {
 	}
 	
 	@GetMapping("/validateToken")
-	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("X-User-Id") String userID) {
+	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("Authorization") String authorizationHeader) {
 		
 		String activityType = "Authentication-VerifyToken";
 		String apiEndPoint = "/api/users/validateToken";
@@ -539,6 +543,7 @@ public class UserController {
 		String activityDesc = "Verifying access token is failed due to ";
 		
 		try {
+			String userID = retrieveUserID(authorizationHeader);
 			User user = userService.findByUserId(userID);
 			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
 			
@@ -558,7 +563,7 @@ public class UserController {
 	
 	
 	@PutMapping(value = "/{id}/roles", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(@RequestHeader("X-User-Id") String userID, @RequestHeader("Authorization") String authorizationHeader,
+	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(@RequestHeader("Authorization") String authorizationHeader,
 	        @PathVariable("id") String id, @RequestBody UserRequest roleReq) {
 	    logger.info("Call user updateUserRole API...");
 	    String message;
@@ -569,7 +574,7 @@ public class UserController {
 
 	    try {
 	    	RoleType role = roleReq.getRole();
-	        
+	    	String userID = retrieveUserID(authorizationHeader);
 
 	        if (role.equals(null) || role.equals("")) {
 	            message = "User Role is invalid.";
@@ -648,5 +653,9 @@ public class UserController {
 		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
 		return headers;
 	}
-
+	
+	private String retrieveUserID(String authorizationHeader) throws JwtException, IllegalArgumentException, Exception {
+		String jwtToken = authorizationHeader.substring(7);
+		return jwtService.extractUserID(jwtToken);
+	}
 }
