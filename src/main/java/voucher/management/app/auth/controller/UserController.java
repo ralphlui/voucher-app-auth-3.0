@@ -2,6 +2,7 @@ package voucher.management.app.auth.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +70,6 @@ public class UserController {
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
 	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
 	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
-	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
 	
 
 	@GetMapping(value = "", produces = "application/json")
@@ -84,8 +84,7 @@ public class UserController {
 		
 
 		try {
-			String userID = retrieveUserID(authorizationHeader);
-			getUserByUserID(userID);
+			retrieveUserIDAndNameFromToken(authorizationHeader);
 			
 			Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
 			Map<Long, List<UserDTO>> resultMap = userService.findActiveUsers(pageable);
@@ -129,19 +128,20 @@ public class UserController {
 		try {
 			ValidationResult validationResult = userValidationStrategy.validateCreation(userRequest);
 			auditLogUserName = validationResult.getUserName();
+			auditLogUserId = validationResult.getUserId();
 			if (validationResult.isValid()) {
 				userRequest.setAuthProvider(AuthProvider.NATIVE);
 				UserDTO userDTO = userService.createUser(userRequest);
 				message = userRequest.getEmail() + " is created successfully";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO,
-						activityType, message, apiEndPoint, httpMethod);
+						activityType, message, apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
 			} else {
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-						validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+						validationResult, activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(), validationResult.getUserName());
 			}
 		} catch (Exception e) {
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-					HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod);
+					HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 
 	}
@@ -164,18 +164,18 @@ public class UserController {
 				
 				logger.error("Login Validation Error: " + validationResult.getMessage());
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-						validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+						validationResult, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";    
 	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
 	    
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);		
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers, auditLogUserId, auditLogUserName);		
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED : HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod);
+					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 	}
 
@@ -198,21 +198,23 @@ public class UserController {
 				UserDTO verifiedUserDTO = userService.verifyUser(verifyid);
 				message = "User successfully verified.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(verifiedUserDTO, activityType, message, apiEndPoint,
-						httpMethod);
+						httpMethod, auditLogUserId, auditLogUserName);
 			} else {
 
 				message = "Vefriy Id could not be blank.";
 				logger.error(message);
+				// To Do
 				auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.BAD_REQUEST.value()), auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod,
 						message);
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(APIResponse.error(message));
 			}
 		} catch (Exception e) {
+			// To Do
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
-					apiEndPoint, httpMethod);
+					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 
 	}
@@ -232,22 +234,23 @@ public class UserController {
 
 		String message = "";
 		try {
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userID, id);
+			getUserByUserID(userID);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 			if (!validationResult.isValid()) {
 				logger.error("Reset passwrod validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-						validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+						validationResult, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
 			UserDTO userDTO = userService.resetPassword(id, resetPwdReq.getPassword());
 			message = "Reset Password is completed.";
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO,
-					activityType, message, apiEndPoint, httpMethod);
+					activityType, message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND : HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod);
+					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 
 	}
@@ -263,28 +266,28 @@ public class UserController {
 		String activityDesc = "Update User failed due to ";
 
 		try {
-			String userId = retrieveUserID(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateUpdating(userId);
-			auditLogUserId = validationResult.getUserId();
-			auditLogUserName = validationResult.getUserName();
+			retrieveUserIDAndNameFromToken(authorizationHeader);
+			ValidationResult validationResult = userValidationStrategy.validateUpdating(id);
 
 			if (validationResult.isValid()) {
 
-				userRequest.setUserId(userId);
+				userRequest.setUserId(id);
 				UserDTO userDTO = userService.update(userRequest);
 				message = "User updated successfully.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint,
-						httpMethod);
+						httpMethod, auditLogUserId, auditLogUserName);
 
 			} else {
+				// To Do
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult, activityType, activityDesc,
-						apiEndPoint, httpMethod);
+						apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 		} catch (Exception e) {
+			// To Do
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
-					apiEndPoint, httpMethod);
+					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		}
 	}
@@ -300,34 +303,37 @@ public class UserController {
 		String activityDesc = "Retrieving active user by id failed due to ";
 
 		try {
-			String userID = retrieveUserID(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userID, id);
+			retrieveUserIDAndNameFromToken(authorizationHeader);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 			
 			if (!validationResult.isValid()) {
 				
 				logger.error("Active user validation is not successful");
+				// To Do
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-						validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+						validationResult, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 				
 			}
 
 			UserDTO userDTO = userService.checkSpecificActiveUser(validationResult.getUserId());
-			message = userDTO.getEmail() + " is Active";	
+			message = userDTO.getEmail() + " is Active";
 			return  apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO,
-					activityType, message, apiEndPoint, httpMethod);
+					activityType, message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			
 
 		} catch (Exception e) {
+			// To Do
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod);
+					htpStatuscode, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 	}
 
 	
 	@PostMapping(value = "/logout", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("Authorization") String authorizationHeader,
+			HttpServletRequest request) {
 		logger.info("Call user update Preferences API...");
 		String message;
 		String activityType = "Authentication-Logout";
@@ -338,6 +344,7 @@ public class UserController {
 		try {
 			String userID = retrieveUserID(authorizationHeader);
 			User user = userService.findByUserId(userID);
+			retrieveUserIDAndNameFromToken(authorizationHeader);
 			if (user != null) {
 				
 				ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
@@ -350,10 +357,11 @@ public class UserController {
 				
 				message = "User logout successfully";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(DTOMapper.toUserDTO(user),
-						activityType, message, apiEndPoint, httpMethod, headers);
+						activityType, message, apiEndPoint, httpMethod, headers, auditLogUserId, auditLogUserName);
 			} else {
 				message = "User not found";
 				logger.error(message);
+				// To Do
 				auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.NOT_FOUND.value()), userID, auditLogUserName, activityType, activityDesc.concat(message), apiEndPoint, auditLogResponseFailure, httpMethod, message);
 				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(APIResponse.error(message));
 				
@@ -361,7 +369,7 @@ public class UserController {
 			}
 		} catch (Exception e) {
 		   return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-				   HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod);
+				   HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 
 	}
@@ -381,13 +389,15 @@ public class UserController {
 		try {
 
 			User user = userService.findByUserId(userID);
-			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
+			auditLogUserName = Optional.ofNullable(user)
+                    .map(User::getUsername)
+                    .orElse(auditLogUserName);
 
 			if (refreshToken == null) {
 				message = "Refresh token is missing";
 				logger.info("Requesting new access Token: " + message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, activityType, activityDesc,
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, auditLogUserName, activityType, activityDesc,
 						apiEndPoint, httpMethod, message);
 
 			}
@@ -412,13 +422,13 @@ public class UserController {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Invalid or expired refresh token";
 				logger.info("Requesting refresh Token: " + message);
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, activityType, activityDesc,
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID,auditLogUserName, activityType, activityDesc,
 						apiEndPoint, httpMethod, message);
 			}
 
 		} catch (Exception e) {
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, userID, auditLogUserName);
 
 		}
 
@@ -434,20 +444,19 @@ public class UserController {
 		String activityDesc = "Verifying access token is failed due to ";
 		
 		try {
-			String userID = retrieveUserID(authorizationHeader);
-			User user = userService.findByUserId(userID);
-			auditLogUserName = user == null ? auditLogUserName : user.getUsername();
+			retrieveUserIDAndNameFromToken(authorizationHeader);
 			
 			HttpStatus httpStatus = HttpStatus.OK;
 			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
-					 userID, auditLogUserName, activityType, message,
+					auditLogUserId, auditLogUserName, activityType, message,
 					 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 			message = "Token is valid.";
 			
 			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.successWithNoData(message));
 		} catch (Exception e) {
+			// To Do
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 		
 	}
@@ -465,7 +474,7 @@ public class UserController {
 
 	    try {
 	    	RoleType role = roleReq.getRole();
-	    	String userID = retrieveUserID(authorizationHeader);
+	    	retrieveUserIDAndNameFromToken(authorizationHeader);
 
 	        if (role.equals(null) || role.equals("")) {
 	            message = "User Role is invalid.";
@@ -475,13 +484,13 @@ public class UserController {
 	            validationResult.setMessage(message);
 	            validationResult.setStatus(httpStatus);
 	            validationResult.setUserId(id);
-	            validationResult.setUserName(userID);
+	            validationResult.setUserName(id);
 	            return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 	        }
 
 	        // Validate User ID
-	        ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userID, id);
+	        ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 
 	        if (validationResult.isValid()) {
 	        	// Get RoleType enum value
@@ -489,11 +498,11 @@ public class UserController {
 	            UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
 	            message = "Role is updated successfully.";
 	            return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO,
-	                    activityType, message, apiEndPoint, httpMethod);
+	                    activityType, message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 	        } else {
 	        	
 	            return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(
-	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod);
+	                    validationResult, activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 	        }
 
 	    } catch (Exception e) {
@@ -501,7 +510,7 @@ public class UserController {
 	        HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 	                : HttpStatus.INTERNAL_SERVER_ERROR;
 	        return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType, activityDesc,
-	                apiEndPoint, httpMethod);
+	                apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 	    }
 	}
 
@@ -545,8 +554,16 @@ public class UserController {
 		return headers;
 	}
 	
+	private void retrieveUserIDAndNameFromToken(String authorizationHeader) throws JwtException, IllegalArgumentException, Exception {
+		String jwtToken = authorizationHeader.substring(7);
+		auditLogUserId =  retrieveUserID(authorizationHeader);
+		auditLogUserName = jwtService.retrieveUserName(jwtToken);
+	}
+	
 	private String retrieveUserID(String authorizationHeader) throws JwtException, IllegalArgumentException, Exception {
 		String jwtToken = authorizationHeader.substring(7);
-		return jwtService.extractUserID(jwtToken);
+		return jwtService.retrieveUserID(jwtToken);
 	}
+	
+	
 }

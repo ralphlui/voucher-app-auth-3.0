@@ -162,10 +162,9 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 	}
 
 
-    public ValidationResult validateObjectByUseId(String userID, String id) {
+    public ValidationResult validateObjectByUseId(String id) {
 		
-		String userId = id.isEmpty() ? userID : id;
-		ValidationResult validationResult = validateObjectByUserId(userId);
+		ValidationResult validationResult = validateObjectByUserId(id);
 		auditLogInvalidUserId = validationResult.getUserId();
 		auditLogInvalidUserName = validationResult.getUserName();
 		return validationResult;

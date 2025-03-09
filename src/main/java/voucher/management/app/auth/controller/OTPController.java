@@ -1,5 +1,7 @@
 package voucher.management.app.auth.controller;
 
+import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +17,7 @@ import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
-import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.exception.UserNotFoundException;
-import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.OTPStorageService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
@@ -51,16 +51,20 @@ public class OTPController {
 		String apiEndPoint = "api/opt";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Generating OTP is failed due to ";
+		User user = userService.findByUserId(userID);
+		String userName = Optional.ofNullable(user)
+                .map(User::getUsername)
+                .orElse(AuditLogInvalidUser.InvalidUserName.toString());
 
 		try {
 			// check userEmail is valid
-			logger.info("Reset Password : " + userRequest.getEmail());
+			logger.info("Generating OTP : " + userRequest.getEmail());
 			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
 			if (!validationResult.isValid()) {
 
 				logger.error("Generate OTP validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod);
+						activityType, activityDesc, apiEndPoint, httpMethod, userID, userName);
 			}
 
 			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
@@ -76,7 +80,7 @@ public class OTPController {
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod);
+					apiEndPoint, httpMethod, userID, userName);
 
 		} catch (Exception e) {
 			message = "OTP code generation failed.";
@@ -84,7 +88,7 @@ public class OTPController {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, userID, userName);
 		}
 	}
 
@@ -97,6 +101,10 @@ public class OTPController {
 		String apiEndPoint = "api/opt";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Validating OTP is failed due to ";
+		User user = userService.findByUserId(userID);
+		String userName = Optional.ofNullable(user)
+                .map(User::getUsername)
+                .orElse(AuditLogInvalidUser.InvalidUserName.toString());
 
 		try {
 
@@ -106,7 +114,7 @@ public class OTPController {
 
 				logger.error("Generate OTP validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod);
+						activityType, activityDesc, apiEndPoint, httpMethod, userID, userName);
 			}
 
 			message = "";
@@ -120,7 +128,7 @@ public class OTPController {
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod);
+					apiEndPoint, httpMethod, userID, userName);
 
 		} catch (Exception e) {
 			message = "OTP code validation failed.";
@@ -129,7 +137,7 @@ public class OTPController {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, userID, userName);
 
 		}
 	}

@@ -14,6 +14,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuditLogInvalidUser;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -107,6 +108,28 @@ public class JWTService {
             throw new RuntimeException("Error hashing refresh token", e);
         }
     }
+    
+	public String retrieveUserID(String token) throws JwtException, IllegalArgumentException, Exception {
+		try {
+			return extractClaim(token, Claims::getSubject);
+		} catch (ExpiredJwtException e) {
+			return e.getClaims().getSubject();
+		} catch (Exception e) {
+			return AuditLogInvalidUser.InvalidUserID.toString();
+		}
+	}
+	
+	public String retrieveUserName(String token) throws JwtException, IllegalArgumentException, Exception {
+		try {
+			Claims claims = extractAllClaims(token);
+			String userName = claims.get("userName", String.class);
+			return userName;
+		} catch (ExpiredJwtException e) {
+			return e.getClaims().get("userName", String.class);
+		} catch (Exception e) {
+			return AuditLogInvalidUser.InvalidUserName.toString();
+		}
+	}
 
 
 }

@@ -11,13 +11,13 @@ public interface IAPIResponseStrategy {
 
 	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForValidationFailure(
 			ValidationResult validationResult, String activityType, String activityDesc, String apiEndPoint,
-			String httpMethod);
-
-	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
-			String activityType, String message, String apiEndPoint, String httpMethod);
+			String httpMethod, String userId, String userName);
 
 	<T> ResponseEntity<APIResponse<T>> handleResponseAndsendAuditLogForExceptionCase(Exception e,
 			HttpStatusCode htpStatuscode, String activityType, String activityDesc, String apiEndPoint,
-			String httpMethod);
+			String httpMethod, String userId, String userName);
+	
+	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
+			String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName);
 
 }
