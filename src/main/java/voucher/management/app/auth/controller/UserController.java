@@ -447,10 +447,10 @@ public class UserController {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 			
 			HttpStatus httpStatus = HttpStatus.OK;
+			message = "Token is valid.";
 			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
 					auditLogUserId, auditLogUserName, activityType, message,
 					 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-			message = "Token is valid.";
 			
 			return ResponseEntity.status(HttpStatus.OK).body(APIResponse.successWithNoData(message));
 		} catch (Exception e) {
