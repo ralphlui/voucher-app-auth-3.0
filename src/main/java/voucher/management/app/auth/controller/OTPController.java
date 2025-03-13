@@ -34,12 +34,6 @@ public class OTPController {
 	private UserService userService;
 	
 	@Autowired
-	private JWTService jwtService;
-
-	@Autowired
-	private RefreshTokenService refreshTokenService;
-	
-	@Autowired
 	private CookieUtils cookieUtils;
 	
 	@Autowired
@@ -70,7 +64,7 @@ public class OTPController {
 			
 
 			if (otp > 0) {
-				message = "OTP sent to " +otp+ userRequest.getEmail() + ". It is valid for 10 minutes.";
+				message = "OTP sent to " +userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
@@ -118,7 +112,7 @@ public class OTPController {
 			
 			if (isValid) {
 				message = "OTP is valid.";
-				HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
 			} else {
 				message = "OTP expired or incorrect";
@@ -139,28 +133,4 @@ public class OTPController {
 		}
 	}
 	
-	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
-		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
-
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
-
-		// Add cookie to headers
-		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
-		if (refreshToken == null) {
-			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
-		}
-			
-		return headers;
-	}
-	
-	
-	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
-		return headers;
-	}
-
 }
