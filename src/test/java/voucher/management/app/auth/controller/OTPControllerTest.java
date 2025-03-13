@@ -79,7 +79,7 @@ class OTPControllerTest {
         userDTO.setUserID("123412");
         
         when(userValidationStrategy.validateObject(userRequest.getEmail())).thenReturn(validationResult);
-        when(otpService.generateAndStoreOTP(userRequest.getEmail())).thenReturn(123456);
+        when(otpService.generateAndStoreOTP(userRequest.getEmail())).thenReturn("123456");
         when(userService.checkSpecificActiveUser("123")).thenReturn(userDTO);
         
         mockMvc.perform(post("/api/otp/generate")

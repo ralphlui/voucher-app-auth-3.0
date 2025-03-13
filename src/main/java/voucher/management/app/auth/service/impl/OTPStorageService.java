@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import voucher.management.app.auth.configuration.AWSConfig;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import voucher.management.app.auth.utility.AmazonSES;
 
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -21,15 +24,27 @@ public class OTPStorageService {
 	@Autowired
 	private AWSConfig awsConfig;
 	
+	@Autowired
+	private StringRedisTemplate redisTemplate;
+	
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+	
+	private static final String DIGITS = "0123456789";
+	private static final SecureRandom RANDOM = new SecureRandom();
+	private static final int OTP_VALIDITY_DURATION = 10; // 10 minutes
+	private static final int OTP_LENGTH = 6;
 	
     private final Cache<String, Integer> otpCache = Caffeine.newBuilder()
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
-    public int generateAndStoreOTP(String email) {
-        int otp = (int) (100000 + Math.random() * 900000); // Generate 6-digit OTP
-        otpCache.put(email, otp);
+    public String generateAndStoreOTP(String email) {
+        String otp = generateRandomOTP(); // Generate 6-digit OTP
+        String storedOtp = getOtp(email);
+        if (storedOtp != null) {
+			deleteOtp(email);
+		}
+		redisTemplate.opsForValue().set(email, otp, Duration.ofMinutes(OTP_VALIDITY_DURATION));
         return otp;
     }
     
@@ -42,7 +57,7 @@ public class OTPStorageService {
         return true;
     }
     
-	public void sendOtpEmail(int otp, String email) {
+	public void sendOtpEmail(String otp, String email) {
 		try {
 			AmazonSimpleEmailService client = awsConfig.sesClient();
 			String from = awsConfig.getEmailFrom().trim();
@@ -57,6 +72,22 @@ public class OTPStorageService {
 			logger.error("Error occurred while sending otp, " + e.toString());
 			e.printStackTrace();
 		}
+	}
+	
+	public String getOtp(String key) {
+		return redisTemplate.opsForValue().get(key);
+	}
+	
+	private void deleteOtp(String key) {
+		redisTemplate.opsForValue().getOperations().delete(key);
+	}
+	
+	private String generateRandomOTP() {
+		StringBuilder otp = new StringBuilder();
+		for (int i = 0; i < OTP_LENGTH; i++) {
+			otp.append(DIGITS.charAt(RANDOM.nextInt(DIGITS.length())));
+		}
+		return otp.toString();
 	}
     
 }

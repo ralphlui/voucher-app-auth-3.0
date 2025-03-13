@@ -67,10 +67,10 @@ public class OTPController {
 						activityType, activityDesc, apiEndPoint, httpMethod, userID, userName);
 			}
 
-			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
+			String otp = otpService.generateAndStoreOTP(userRequest.getEmail());
 			
 
-			if (otp > 0) {
+			if (!otp.isEmpty()) {
 				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
