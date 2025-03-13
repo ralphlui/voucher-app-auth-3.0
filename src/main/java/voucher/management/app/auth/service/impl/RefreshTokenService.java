@@ -58,11 +58,11 @@ public class RefreshTokenService implements IRefreshTokenService {
 		}
 	}
 
-	public void updateRefreshToken(String token, Boolean revokded) {
+	public void updateRefreshToken(String token, Boolean revoked) {
 
 		try {
 			 String hashedToken = jwtService.hashWithSHA256(token);
-			 refreshTokenRepsitory.updateRefreshToken(revokded, LocalDateTime.now(), hashedToken);
+			 refreshTokenRepsitory.updateRefreshToken(revoked, LocalDateTime.now(), hashedToken);
 
 		} catch (Exception e) {
 			logger.error("Error occurred while updating refresh token, " + e.toString());
