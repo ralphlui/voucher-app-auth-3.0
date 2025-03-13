@@ -3,25 +3,20 @@ package voucher.management.app.auth.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import voucher.management.app.auth.dto.APIResponse;
-import voucher.management.app.auth.dto.UserDTO;
-import voucher.management.app.auth.dto.UserRequest;
-import voucher.management.app.auth.dto.ValidationResult;
-import voucher.management.app.auth.entity.User;
-import voucher.management.app.auth.enums.AuditLogInvalidUser;
-import voucher.management.app.auth.enums.AuditLogResponseStatus;
-import voucher.management.app.auth.exception.UserNotFoundException;
-import voucher.management.app.auth.service.impl.AuditLogService;
-import voucher.management.app.auth.service.impl.OTPStorageService;
-import voucher.management.app.auth.service.impl.UserService;
-import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
-import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
+import io.jsonwebtoken.security.InvalidKeyException;
+import voucher.management.app.auth.dto.*;
+import voucher.management.app.auth.exception.UserNotFoundException; 
+import voucher.management.app.auth.service.impl.*;
+import voucher.management.app.auth.strategy.impl.*;
+import voucher.management.app.auth.utility.CookieUtils;
 
 @RestController
 @RequestMapping("/api/otp")
@@ -37,12 +32,20 @@ public class OTPController {
 
 	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private JWTService jwtService;
 
+	@Autowired
+	private RefreshTokenService refreshTokenService;
+	
+	@Autowired
+	private CookieUtils cookieUtils;
+	
 	@Autowired
 	private APIResponseStrategy apiResponseStrategy;
 
-	
-	@PostMapping("/generate")
+	@PostMapping(value = "/generate", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestHeader("X-User-Id") String userID,
 			@RequestBody UserRequest userRequest) {
 
@@ -67,7 +70,7 @@ public class OTPController {
 			
 
 			if (otp > 0) {
-				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
+				message = "OTP sent to " +otp+ userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
@@ -88,7 +91,7 @@ public class OTPController {
 		}
 	}
 
-	@PostMapping("/validate")
+	@PostMapping(value = "/validate", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> validateOtp(@RequestHeader("X-User-Id") String userID,
 			@RequestBody UserRequest userRequest) {
 
@@ -111,16 +114,18 @@ public class OTPController {
 
 			message = "";
 			boolean isValid = otpService.validateOTP(userRequest.getEmail(), userRequest.getOtp());
+			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
+			
 			if (isValid) {
 				message = "OTP is valid.";
+				HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
 			} else {
 				message = "OTP expired or incorrect";
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
+						apiEndPoint, httpMethod,HttpStatus.BAD_REQUEST);
 			}
-
-			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
-
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod);
+			
 
 		} catch (Exception e) {
 			message = "OTP code validation failed.";
@@ -132,6 +137,30 @@ public class OTPController {
 					activityDesc, apiEndPoint, httpMethod);
 
 		}
+	}
+	
+	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
+		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
+		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
+
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
+
+		// Add cookie to headers
+		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
+		if (refreshToken == null) {
+			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
+		}
+			
+		return headers;
+	}
+	
+	
+	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
+		return headers;
 	}
 
 }

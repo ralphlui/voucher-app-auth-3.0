@@ -167,9 +167,10 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";    
-	    	HttpHeaders headers = createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
-	    
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);		
+	    	
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint,
+					httpMethod);
+					
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED : HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
@@ -648,5 +649,6 @@ public class UserController {
 		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
 		return headers;
 	}
+	
 
 }
