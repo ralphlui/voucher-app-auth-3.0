@@ -6,6 +6,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import voucher.management.app.auth.configuration.AWSConfig;
 import org.springframework.data.redis.core.StringRedisTemplate;
+
 import voucher.management.app.auth.utility.AmazonSES;
 
 import org.slf4j.Logger;
@@ -13,9 +14,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -27,6 +32,7 @@ public class OTPStorageService {
 	@Autowired
 	private StringRedisTemplate redisTemplate;
 	
+
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	
 	private static final String DIGITS = "0123456789";
@@ -40,11 +46,12 @@ public class OTPStorageService {
 
     public String generateAndStoreOTP(String email) {
         String otp = generateRandomOTP(); // Generate 6-digit OTP
-        String storedOtp = getOtp(email);
+        String hashedEmail = hashEmail(email);
+        String storedOtp = getOtp(hashedEmail);
         if (storedOtp != null) {
-			deleteOtp(email);
+			deleteOtp(hashedEmail);
 		}
-		redisTemplate.opsForValue().set(email, otp, Duration.ofMinutes(OTP_VALIDITY_DURATION));
+		redisTemplate.opsForValue().set(hashedEmail, otp, Duration.ofMinutes(OTP_VALIDITY_DURATION));
         return otp;
     }
     
@@ -79,7 +86,7 @@ public class OTPStorageService {
 	}
 	
 	private void deleteOtp(String key) {
-		redisTemplate.opsForValue().getOperations().delete(key);
+		redisTemplate.opsForValue().getAndDelete(key);
 	}
 	
 	private String generateRandomOTP() {
@@ -89,5 +96,15 @@ public class OTPStorageService {
 		}
 		return otp.toString();
 	}
+	
+    private String hashEmail(String email) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(email.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hash); // Base64 encoding for storage
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Error hashing email", e);
+        }
+    }
     
 }
