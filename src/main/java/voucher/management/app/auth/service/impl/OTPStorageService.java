@@ -15,13 +15,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -96,17 +92,6 @@ public class OTPStorageService {
 			otp.append(DIGITS.charAt(RANDOM.nextInt(DIGITS.length())));
 		}
 		return otp.toString();
-	}
-	
-
-	public boolean validateNEWOTP(String key, int i) {
-		String hashedEmail = GeneralUtility.hashWithSHA256(key);
-		String storedOtp = getOtp(hashedEmail);
-		if (storedOtp != null && storedOtp.equals(String.valueOf(i))) {
-			deleteOtp(key);
-			return true;
-		}
-		return false;
 	}
     
 }
