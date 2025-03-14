@@ -67,16 +67,15 @@ public class OTPController {
 						activityType, activityDesc, apiEndPoint, httpMethod, userID, userName);
 			}
 
-			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
+			String otp = otpService.generateAndStoreOTP(userRequest.getEmail());
 			
 
-			if (otp > 0) {
+			if (!otp.isEmpty()) {
 				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
+				otpService.sendOtpEmail(otp, userRequest.getEmail());
 			}
 			
 			//TO Sent Email...
-			
-			otpService.sendOtpEmail(otp, userRequest.getEmail());
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
