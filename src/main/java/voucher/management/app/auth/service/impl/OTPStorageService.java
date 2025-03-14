@@ -8,6 +8,7 @@ import voucher.management.app.auth.configuration.AWSConfig;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import voucher.management.app.auth.utility.AmazonSES;
+import voucher.management.app.auth.utility.GeneralUtility;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class OTPStorageService {
 
     public String generateAndStoreOTP(String email) {
         String otp = generateRandomOTP(); // Generate 6-digit OTP
-        String hashedEmail = hashEmail(email);
+        String hashedEmail = GeneralUtility.hashWithSHA256(email);
         String storedOtp = getOtp(hashedEmail);
         if (storedOtp != null) {
 			deleteOtp(hashedEmail);
@@ -97,14 +98,15 @@ public class OTPStorageService {
 		return otp.toString();
 	}
 	
-    private String hashEmail(String email) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(email.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hash); // Base64 encoding for storage
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing email", e);
-        }
-    }
+
+	public boolean validateNEWOTP(String key, int i) {
+		String hashedEmail = GeneralUtility.hashWithSHA256(key);
+		String storedOtp = getOtp(hashedEmail);
+		if (storedOtp != null && storedOtp.equals(String.valueOf(i))) {
+			deleteOtp(key);
+			return true;
+		}
+		return false;
+	}
     
 }
