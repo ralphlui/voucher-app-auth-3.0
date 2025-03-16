@@ -48,13 +48,13 @@ public class OTPController {
 
 		String message = "";
 		String activityType = "Authentication-GenerateOTP";
-		String apiEndPoint = "api/opt";
+		String apiEndPoint = "api/otp";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Generating OTP is failed due to ";
 
 		try {
 			// check userEmail is valid
-			logger.info("Reset Password : " + userRequest.getEmail());
+			logger.info("Generate otp : " + userRequest.getEmail());
 			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
 			if (!validationResult.isValid()) {
 
@@ -104,14 +104,14 @@ public class OTPController {
 			@RequestBody UserRequest userRequest) {
 
 		String message = "";
-		String activityType = "Authentication-GenerateOTP";
-		String apiEndPoint = "api/opt";
+		String activityType = "Authentication-ValidateOTP";
+		String apiEndPoint = "api/otp";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Validating OTP is failed due to ";
 
 		try {
 
-			logger.info("Reset Password : " + userRequest.getEmail());
+			logger.info("otp validate : " + userRequest.getEmail());
 			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
 			if (!validationResult.isValid()) {
 
