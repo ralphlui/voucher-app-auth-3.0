@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import voucher.management.app.auth.entity.User;
-import voucher.management.app.auth.enums.RoleType;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {

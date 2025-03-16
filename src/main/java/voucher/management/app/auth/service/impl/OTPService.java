@@ -15,8 +15,6 @@ import voucher.management.app.auth.utility.GeneralUtility;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class OTPService {

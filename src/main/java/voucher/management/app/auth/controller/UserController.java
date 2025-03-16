@@ -2,7 +2,6 @@ package voucher.management.app.auth.controller;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -181,7 +180,7 @@ public class UserController {
 	}
 
 	@PatchMapping(value = "/verify/{verifyid}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> verifyUser(
 			@PathVariable("verifyid") String verifyid) {
 
 		logger.info("Call user verify API with verifyToken={}", verifyid);
@@ -193,10 +192,11 @@ public class UserController {
 		String activityDesc = "User verification is failed due to ";
 
 		try {
-			getUserByUserID(userID);
 			
 			if (!verifyid.isEmpty()) {
 				UserDTO verifiedUserDTO = userService.verifyUser(verifyid);
+				auditLogUserId = verifiedUserDTO.getUserID();
+				auditLogUserName = verifiedUserDTO.getUsername();			
 				message = "User successfully verified.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(verifiedUserDTO, activityType, message, apiEndPoint,
 						httpMethod, auditLogUserId, auditLogUserName);
@@ -221,7 +221,7 @@ public class UserController {
 	}
 
 	@PatchMapping(value = "/{id}/resetPassword", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> resetPassword(@RequestHeader("X-User-Id") String userID, @PathVariable("id") String id, @RequestBody UserRequest resetPwdReq) {
+	public ResponseEntity<APIResponse<UserDTO>> resetPassword(@PathVariable("id") String id, @RequestBody UserRequest resetPwdReq) {
 
 		logger.info("Call user resetPassword API...");
 
@@ -235,7 +235,7 @@ public class UserController {
 
 		String message = "";
 		try {
-			getUserByUserID(userID);
+			getUserByUserID(id);
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 			if (!validationResult.isValid()) {
 				logger.error("Reset passwrod validation is not successful");
@@ -377,7 +377,7 @@ public class UserController {
 	
 
 	@PostMapping("/refreshToken")
-	public <T> ResponseEntity<APIResponse<T>> refreshToken(@RequestHeader("X-User-Id") String userID,
+	public <T> ResponseEntity<APIResponse<T>> refreshToken(
 			HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
 		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);
@@ -388,20 +388,17 @@ public class UserController {
 		String activityDesc = "Requesting new access token is failed due to ";
 
 		try {
-
-			User user = userService.findByUserId(userID);
-			auditLogUserName = Optional.ofNullable(user)
-                    .map(User::getUsername)
-                    .orElse(auditLogUserName);
-
 			if (refreshToken == null) {
 				message = "Refresh token is missing";
 				logger.info("Requesting new access Token: " + message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID, auditLogUserName, activityType, activityDesc,
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId, auditLogUserName, activityType, activityDesc,
 						apiEndPoint, httpMethod, message);
 
 			}
+			auditLogUserId = jwtService.retrieveUserID(refreshToken);
+			auditLogUserName = jwtService.retrieveUserName(refreshToken);
+			
 			if (refreshTokenService.verifyRefreshToken(refreshToken)) {
 				Claims claims = jwtService.extractAllClaims(refreshToken);
 				String userid = claims.getSubject();
@@ -415,7 +412,7 @@ public class UserController {
 				
 				refreshTokenService.updateRefreshToken(refreshToken, true);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()),
-				 userID, auditLogUserName, activityType, message,
+						auditLogUserId, auditLogUserName, activityType, message,
 				 apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 				return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.successWithNoData(message));
 
@@ -423,13 +420,13 @@ public class UserController {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Invalid or expired refresh token";
 				logger.info("Requesting refresh Token: " + message);
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, userID,auditLogUserName, activityType, activityDesc,
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId, auditLogUserName, activityType, activityDesc,
 						apiEndPoint, httpMethod, message);
 			}
 
 		} catch (Exception e) {
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, HttpStatus.INTERNAL_SERVER_ERROR, activityType,
-					activityDesc, apiEndPoint, httpMethod, userID, auditLogUserName);
+					activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		}
 
