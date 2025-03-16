@@ -245,4 +245,15 @@ public class UserServiceTest {
 		assertEquals("UserAdmin", updatedUser.getUsername());
 		assertEquals(RoleType.CUSTOMER, updatedUser.getRole());
 	}
+	
+	@Test
+	void checkSpecificActiveUserByEmail() throws Exception {
+
+		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
+
+		UserDTO activeUser = userService.checkSpecificActiveUserByEmail(user.getEmail());
+		assertThat(activeUser.getEmail().equals(user.getEmail())).isTrue();
+
+	}
+
 }

@@ -38,4 +38,6 @@ public interface IUserService {
 	 UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception;
 	 
 	 UserDTO updateRoleByUser(String userId,RoleType role);
+	 
+	 UserDTO checkSpecificActiveUserByEmail(String email);
 }

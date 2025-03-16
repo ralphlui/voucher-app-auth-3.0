@@ -39,7 +39,7 @@ public class OTPController {
 	private APIResponseStrategy apiResponseStrategy;
 
 	@PostMapping(value = "/generate", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> generateOtp(
 			@RequestBody UserRequest userRequest) {
 
 		String message = "";
@@ -63,18 +63,17 @@ public class OTPController {
 			
 
 			if (!GeneralUtility.makeNotNull(otp).equals("")) {
-				message = "OTP sent to "+ userRequest.getEmail() + ". It is valid for 10 minutes.";
+				message = "OTP sent to "+otp+ userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
 			
 			boolean isSent = otpService.sendOTPEmail(otp, userRequest.getEmail());
-			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
+			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
 			
 			if (isSent) {
 				
-				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod);
 			} else {
 				message = "OTP email sending failed.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
@@ -93,7 +92,7 @@ public class OTPController {
 	}
 
 	@PostMapping(value = "/validate", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> validateOtp(@RequestHeader("X-User-Id") String userID,
+	public ResponseEntity<APIResponse<UserDTO>> validateOtp(
 			@RequestBody UserRequest userRequest) {
 
 		String message = "";
@@ -115,7 +114,7 @@ public class OTPController {
 
 			message = "";
 			boolean isValid = otpService.validateOTP(userRequest.getEmail(), userRequest.getOtp());
-			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
+			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
 			
 			if (isValid) {
 				message = "OTP is valid.";
