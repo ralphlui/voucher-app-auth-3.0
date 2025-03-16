@@ -105,7 +105,6 @@ public class UserService implements IUserService  {
 			
 			user.setCreatedDate(LocalDateTime.now());
 			String preferences = formatPreferencesString(userReq.getPreferences());
-			user.setPreferences(preferences);
 			logger.info("Create User...");
 			User createdUser = userRepository.save(user);
 			
@@ -212,8 +211,6 @@ public class UserService implements IUserService  {
 			dbUser.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 			dbUser.setActive(userRequest.getActive());
 			dbUser.setUpdatedDate(LocalDateTime.now());
-			String preferences = formatPreferencesString(userRequest.getPreferences());
-			dbUser.setPreferences(preferences);
 			logger.info("Update User...");
 			User updateUser = userRepository.save(dbUser);
 			logger.info("User update is successful");

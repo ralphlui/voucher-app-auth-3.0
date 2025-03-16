@@ -90,7 +90,6 @@ public class UserControllerTest {
 		testUser = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(), userRequest.getRole(), true);
 		errorUser = new User("error@gmail.com", "Error", "Pwd@21212", RoleType.MERCHANT, true);
 		errorUser.setUserId("0");
-		testUser.setPreferences("food");
 		testUser.setUserId(userRequest.getUserId());
 
 		mockUsers.add(DTOMapper.toUserDTO(testUser));
@@ -155,7 +154,6 @@ public class UserControllerTest {
 		
         
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
-				.header("X-User-Id", testUser.getUserId())
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
@@ -167,7 +165,6 @@ public class UserControllerTest {
 		UserRequest userNotFoundRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212");
 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
-				.header("X-User-Id", "")
 				.content(objectMapper.writeValueAsString(userNotFoundRequest)))
 				.andExpect(MockMvcResultMatchers.status().isNotFound())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))

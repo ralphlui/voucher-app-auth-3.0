@@ -20,9 +20,5 @@ public interface IAPIResponseStrategy {
 	
 	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
 			String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName);
-	
-	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForFailedCase(UserDTO userDTO,
-			String activityType,String activityDesc, String message, String apiEndPoint, String httpMethod,HttpStatusCode httpStatus);
-
 
 }

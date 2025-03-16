@@ -29,8 +29,4 @@ public interface UserRepository extends JpaRepository<User, String> {
 	
 	@Query("SELECT u FROM User u WHERE u.verificationCode = ?1 AND u.isVerified = ?2 AND u.isActive = ?3")
 	User findByVerificationCode(String verificationCode,boolean isVerified,boolean isActive);
-	
-	@Query("SELECT u FROM User u WHERE u.preferences LIKE %?1% AND u.isActive = ?2  AND u.isVerified = ?3  AND u.role = ?4")
-	Page<User> findByPreferences(String perferences, boolean isActive, boolean isVerified, RoleType role, Pageable pageable);
-	
 }

@@ -22,11 +22,6 @@ public class DTOMapper {
 		userDTO.setRole(user.getRole());
 		userDTO.setActive(user.isActive());
 		userDTO.setVerified(user.isVerified());
-		String[] preferences = user.getPreferences().split(",");
-		if (preferences.length > 0 && !preferences[0].isEmpty()) {
-			 List<String> preferencesArrayList = new ArrayList<String>(Arrays.asList(preferences));
-		    userDTO.setPreferences(preferencesArrayList);
-		} 
 		return userDTO;
 	}
 

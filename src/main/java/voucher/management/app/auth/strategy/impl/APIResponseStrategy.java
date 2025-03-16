@@ -107,18 +107,15 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userID, userName,
 				activityType, message, apiEndPoint, auditLogResponseFailure, httpMethod, "");
 		return ResponseEntity.status(httpStatus).body(APIResponse.error(message));
-	}
-
-	@Override
-	public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForFailedCase(UserDTO userDTO,
-			String activityType,String activityDesc, String message, String apiEndPoint, String httpMethod, HttpStatusCode httpStatus) {
-		 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
-					auditLogUserName, activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod,
+	}  
+    
+    public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForFailedCase(UserDTO userDTO,
+			String activityType,String activityDesc, String message, String apiEndPoint, String httpMethod, HttpStatusCode httpStatus, String userID, String userName) {
+		 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userID,
+				 userName, activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod,
 					message);
 			return ResponseEntity.status(httpStatus).body(APIResponse.error(message));
 	}
     
-    
-   
 
 }
