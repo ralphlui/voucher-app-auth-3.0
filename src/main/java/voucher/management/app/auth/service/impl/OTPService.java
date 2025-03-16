@@ -29,23 +29,22 @@ public class OTPService {
 	private static final int OTP_LENGTH = 6;
 	private static final int OTP_VALIDITY_DURATION = 10;
 	private static final String DIGITS = "0123456789";
-	private static final SecureRandom RANDOM = new SecureRandom();	
-	
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	@Autowired
 	private StringRedisTemplate redisTemplate;
-	
+
 	public String generateOTP(String email) {
-        String otp = generateRandomOTP(); // Generate 6-digit OTP
-        String hashedEmail = GeneralUtility.hashWithSHA256(email);
-        String storedOtp = getOtp(hashedEmail);
-        if (storedOtp != null) {
+		String otp = generateRandomOTP(); // Generate 6-digit OTP
+		String hashedEmail = GeneralUtility.hashWithSHA256(email);
+		String storedOtp = getOtp(hashedEmail);
+		if (storedOtp != null) {
 			deleteOtp(hashedEmail);
 		}
 		redisTemplate.opsForValue().set(hashedEmail, otp, Duration.ofMinutes(OTP_VALIDITY_DURATION));
-        return otp;
-    }
-	
+		return otp;
+	}
+
 	private String generateRandomOTP() {
 		StringBuilder otp = new StringBuilder();
 		for (int i = 0; i < OTP_LENGTH; i++) {
@@ -53,30 +52,28 @@ public class OTPService {
 		}
 		return otp.toString();
 	}
-	
+
 	public String getOtp(String key) {
 		return redisTemplate.opsForValue().get(key);
 	}
-	
+
 	private void deleteOtp(String key) {
 		redisTemplate.opsForValue().getAndDelete(key);
 	}
-    
 
-	
 	public boolean validateOTP(String email, String otp) {
-	    String hashedEmail = GeneralUtility.hashWithSHA256(email);
-	    String storedOTP = getOtp(hashedEmail);
+		String hashedEmail = GeneralUtility.hashWithSHA256(email);
+		String storedOTP = getOtp(hashedEmail);
 
-	    if (storedOTP != null && storedOTP.equals(otp)) {
-	        deleteOtp(hashedEmail);
-	        return true;
-	    }
-	    return false;
+		if (storedOTP != null && storedOTP.equals(otp)) {
+			deleteOtp(hashedEmail);
+			return true;
+		}
+		return false;
 	}
-	
 
-	public void sendOTPEmail(String otp, String email) {
+	public boolean sendOTPEmail(String otp, String email) {
+		boolean isSent = false;
 		try {
 			AmazonSimpleEmailService client = awsConfig.sesClient();
 			String from = awsConfig.getEmailFrom().trim();
@@ -86,10 +83,11 @@ public class OTPService {
 					+ "The above code will be expired in 10 mins.<br>"
 					+ "This is an auto-generated email, please do not reply.";
 
-			AmazonSES.sendEmail(client, from, Arrays.asList(email), subject, body);
+			isSent = AmazonSES.sendEmail(client, from, Arrays.asList(email), subject, body);
 		} catch (Exception e) {
 			logger.error("Error occurred while sending otp, " + e.toString());
 			e.printStackTrace();
 		}
+		return isSent;
 	}
 }

@@ -68,11 +68,19 @@ public class OTPController {
 			
 			//TO Sent Email...
 			
-			otpService.sendOTPEmail(otp, userRequest.getEmail());
+			boolean isSent = otpService.sendOTPEmail(otp, userRequest.getEmail());
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
-
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod);
+			
+			if (isSent) {
+				
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
+			} else {
+				message = "OTP email sending failed.";
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
+						apiEndPoint, httpMethod,HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+			
 
 		} catch (Exception e) {
 			message = "OTP code generation failed.";
