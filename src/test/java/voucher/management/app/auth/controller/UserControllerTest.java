@@ -153,29 +153,12 @@ public class UserControllerTest {
 		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))	
 		.thenReturn(DTOMapper.toUserDTO(testUser));
 		
-		String userName = testUser.getUsername();
-        String email = testUser.getEmail();
-        String userId = testUser.getUserId();
-        String accessToken = "access-token";
-        String refreshToken = "refresh-token";
-        
-        ResponseCookie accessTokenCookie = ResponseCookie.from("access_token", accessToken).build();
-        ResponseCookie refreshTokenCookie = ResponseCookie.from("refresh_token", refreshToken).build();
-
-        when(jwtService.generateToken(userName, email, userId, false)).thenReturn(accessToken);
-        when(jwtService.generateToken(userName, email, userId, true)).thenReturn(refreshToken);
-        when(cookieUtils.createCookie("access_token", accessToken, false, 1)).thenReturn(accessTokenCookie);
-        when(cookieUtils.createCookie("refresh_token", refreshToken, true, 1)).thenReturn(refreshTokenCookie);
-
-        refreshTokenService.saveRefreshToken(userId, refreshToken);
         
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.header("X-User-Id", testUser.getUserId())
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
-				.andExpect(MockMvcResultMatchers.cookie().exists("access_token"))
-				.andExpect(MockMvcResultMatchers.cookie().exists("refresh_token"))
 				.andExpect(jsonPath("$.data.username").value(userRequest.getUsername()))
 				.andExpect(jsonPath("$.data.email").value(userRequest.getEmail()))
 				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString()))

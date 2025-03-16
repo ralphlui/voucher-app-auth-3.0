@@ -5,23 +5,21 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import voucher.management.app.auth.dto.APIResponse;
-import voucher.management.app.auth.dto.UserDTO;
-import voucher.management.app.auth.dto.UserRequest;
-import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
-import voucher.management.app.auth.exception.UserNotFoundException;
-import voucher.management.app.auth.service.impl.OTPStorageService;
-import voucher.management.app.auth.service.impl.UserService;
-import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
-import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
+import voucher.management.app.auth.dto.*;
+import voucher.management.app.auth.exception.UserNotFoundException; 
+import voucher.management.app.auth.service.impl.*;
+import voucher.management.app.auth.strategy.impl.*;
+import voucher.management.app.auth.utility.CookieUtils;
+import voucher.management.app.auth.utility.GeneralUtility;
 
 @RestController
 @RequestMapping("/api/otp")
@@ -30,20 +28,22 @@ public class OTPController {
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
 	@Autowired
-	private OTPStorageService otpService;
+	private OTPService otpService;
 
 	@Autowired
 	private UserValidationStrategy userValidationStrategy;
 
 	@Autowired
 	private UserService userService;
-
+	
+	@Autowired
+	private CookieUtils cookieUtils;
+	
 	@Autowired
 	private APIResponseStrategy apiResponseStrategy;
 
-	
-	@PostMapping("/generate")
-	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestHeader("X-User-Id") String userID,
+	@PostMapping(value = "/generate", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> generateOtp(
 			@RequestBody UserRequest userRequest) {
 
 		String message = "";
@@ -67,19 +67,27 @@ public class OTPController {
 						activityType, activityDesc, apiEndPoint, httpMethod, userID, userName);
 			}
 
-			String otp = otpService.generateAndStoreOTP(userRequest.getEmail());
+			String otp = otpService.generateOTP(userRequest.getEmail());
 			
 
-			if (!otp.isEmpty()) {
-				message = "OTP sent to " + userRequest.getEmail() + ". It is valid for 10 minutes.";
-				otpService.sendOtpEmail(otp, userRequest.getEmail());
+			if (!GeneralUtility.makeNotNull(otp).equals("")) {
+				message = "OTP sent to "+otp+ userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
-			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
-
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, userID, userName);
+			
+			boolean isSent = otpService.sendOTPEmail(otp, userRequest.getEmail());
+			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
+			
+			if (isSent) {
+				
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod);
+			} else {
+				message = "OTP email sending failed.";
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
+						apiEndPoint, httpMethod,HttpStatus.INTERNAL_SERVER_ERROR);
+			}
+			
 
 		} catch (Exception e) {
 			message = "OTP code generation failed.";
@@ -91,8 +99,8 @@ public class OTPController {
 		}
 	}
 
-	@PostMapping("/validate")
-	public ResponseEntity<APIResponse<UserDTO>> validateOtp(@RequestHeader("X-User-Id") String userID,
+	@PostMapping(value = "/validate", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> validateOtp(
 			@RequestBody UserRequest userRequest) {
 
 		String message = "";
@@ -118,17 +126,18 @@ public class OTPController {
 
 			message = "";
 			boolean isValid = otpService.validateOTP(userRequest.getEmail(), userRequest.getOtp());
+			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
+			
 			if (isValid) {
 				message = "OTP is valid.";
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
 			} else {
 				message = "OTP expired or incorrect";
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
+						apiEndPoint, httpMethod,HttpStatus.BAD_REQUEST);
 			}
-
-			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
-
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, userID, userName);
-
+			
 		} catch (Exception e) {
 			message = "OTP code validation failed.";
 
@@ -140,5 +149,5 @@ public class OTPController {
 
 		}
 	}
-
+	
 }

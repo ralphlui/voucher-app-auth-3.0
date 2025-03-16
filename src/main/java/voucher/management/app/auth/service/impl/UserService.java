@@ -348,5 +348,23 @@ public class UserService implements IUserService  {
 		}
 	}
 
+	@Override
+	public UserDTO checkSpecificActiveUserByEmail(String email) {
+		try {
+			User user = findByEmailAndStatus(email, true, true);
+			if (user == null) {
+				logger.error("Active user is not found.");
+				throw new UserNotFoundException("This user is not an active user");
+			}
+			logger.info("Active user is found.");
+			return DTOMapper.toUserDTO(user);
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while checking specific active User by Email, " + e.toString());
+			e.printStackTrace();
+			throw e;
+		}
+	}
+
 }
 
