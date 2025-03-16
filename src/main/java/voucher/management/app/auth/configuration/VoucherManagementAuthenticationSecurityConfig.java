@@ -51,7 +51,7 @@ public class VoucherManagementAuthenticationSecurityConfig {
 		return http.cors(cors -> {
 			cors.configurationSource(request -> {
 				CorsConfiguration config = new CorsConfiguration();
-				config.setAllowedOrigins(List.of("https://devplify.com"));
+				config.setAllowedOrigins(List.of(frontEndUrl));
 				config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
 				config.setAllowedHeaders(List.of("*"));
 				config.applyPermitDefaultValues();
