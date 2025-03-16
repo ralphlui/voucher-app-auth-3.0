@@ -1,5 +1,6 @@
 package voucher.management.app.auth.controller;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -11,10 +12,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,6 +27,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,6 +37,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.Cookie;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -68,7 +74,7 @@ public class UserControllerTest {
 	@MockBean
 	private JWTService jwtService;
 
-	@MockBean
+	@Mock
 	private CookieUtils cookieUtils;
 
 	
@@ -325,10 +331,33 @@ public class UserControllerTest {
 	
 	@Test
 	public void testRefreshToken() throws Exception {
-		mockMvc.perform(
-				MockMvcRequestBuilders.post("/api/users/refreshToken"))
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken"))
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.message").value("Refresh token is missing")).andDo(print());
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		String cookieName = "refresh_token";
+		String refreshToken = "mockRefreshToken";
+		Optional<String> cookieValue = Optional.ofNullable(refreshToken);
+
+		when(cookieUtils.getRefreshTokenFromCookies(request, cookieName)).thenReturn(cookieValue);
+		mockMvc.perform(
+				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+				.andDo(print());
+		
+		when(refreshTokenService.verifyRefreshToken(refreshToken)).thenReturn(true);
+	    
+	    Claims mockClaims = mock(Claims.class);
+	    when(jwtService.extractAllClaims(refreshToken)).thenReturn(mockClaims);
+
+		mockMvc.perform(
+				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.message").value("Refresh token is successful."))
+				.andDo(print());
 	}
 	
 	@Test
