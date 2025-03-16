@@ -15,6 +15,7 @@ import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.RefreshTokenRepository;
 import voucher.management.app.auth.service.IRefreshTokenService;
+import voucher.management.app.auth.utility.GeneralUtility;
 
 @Service
 public class RefreshTokenService implements IRefreshTokenService {
@@ -34,7 +35,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 	public void saveRefreshToken(String userID, String token) throws Exception {
 
 		try {
-			String hashedToken = jwtService.hashWithSHA256(token);
+			String hashedToken = GeneralUtility.hashWithSHA256(token);
 			
 			User user = userService.findByUserId(userID);
 			Date expiredDate = jwtService.extractExpiration(token);
@@ -58,11 +59,11 @@ public class RefreshTokenService implements IRefreshTokenService {
 		}
 	}
 
-	public void updateRefreshToken(String token, Boolean revokded) {
+	public void updateRefreshToken(String token, Boolean revoked) {
 
 		try {
-			 String hashedToken = jwtService.hashWithSHA256(token);
-			 refreshTokenRepsitory.updateRefreshToken(revokded, LocalDateTime.now(), hashedToken);
+			 String hashedToken = GeneralUtility.hashWithSHA256(token);
+			 refreshTokenRepsitory.updateRefreshToken(revoked, LocalDateTime.now(), hashedToken);
 
 		} catch (Exception e) {
 			logger.error("Error occurred while updating refresh token, " + e.toString());
@@ -74,7 +75,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 	
 	public Boolean verifyRefreshToken(String refreshToken) throws Exception {
 		try {
-			 String hashedToken = jwtService.hashWithSHA256(refreshToken);
+			 String hashedToken = GeneralUtility.hashWithSHA256(refreshToken);
 			 RefreshToken savedRefreshToken = refreshTokenRepsitory.findByToken(hashedToken);
 			if (savedRefreshToken == null || savedRefreshToken.isRevoked()) {
 				throw new UserNotFoundException("Invalid Refresh Token.");

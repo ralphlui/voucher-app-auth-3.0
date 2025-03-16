@@ -5,7 +5,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.service.impl.AuditLogService;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
@@ -42,6 +40,7 @@ public class JwtFilter extends OncePerRequestFilter {
 	private UserService userService;
 	
 	private String userID;
+	private String userName;
 	private String apiEndpoint;
 	private String httpMethod;
 
@@ -50,9 +49,11 @@ public class JwtFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 		
 		String authHeader = request.getHeader("Authorization");
-	    userID = Optional.ofNullable(request.getHeader("X-User-Id")).orElse(AuditLogInvalidUser.InvalidUserID.toString());
 	    apiEndpoint = request.getRequestURI();
 	    httpMethod = request.getMethod();
+	    userID = AuditLogInvalidUser.InvalidUserID.toString();
+	    userName = AuditLogInvalidUser.InvalidUserName.toString();
+	    
 
 		if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 			filterChain.doFilter(request, response);
@@ -62,8 +63,10 @@ public class JwtFilter extends OncePerRequestFilter {
 		String jwtToken = authHeader.substring(7); // Remove "Bearer " prefix
 	
 
-		if (SecurityContextHolder.getContext().getAuthentication() == null) {
+		if (SecurityContextHolder.getContext().getAuthentication() == null && !jwtToken.isEmpty()) {
 			try {
+		    userID = jwtService.retrieveUserID(jwtToken);	
+		    userName = jwtService.retrieveUserName(jwtToken);
 			UserDetails userDetails = jwtService.getUserDetail(jwtToken);
 				if (jwtService.validateToken(jwtToken, userDetails)) {
 					UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -92,16 +95,6 @@ public class JwtFilter extends OncePerRequestFilter {
 	
 	private void handleException(HttpServletResponse response, String message, int status) throws IOException {
 		TokenErrorResponse.sendErrorResponse(response, message, status, "UnAuthorized");
-		String userName =  AuditLogInvalidUser.InvalidUserName.toString();
-		
-		if (userID != AuditLogInvalidUser.InvalidUserID.toString() && !userID.isEmpty()) {
-			User user = userService.findByUserId(userID);
-			userName = Optional.ofNullable(user)
-			                   .map(User::getUsername)
-			                   .orElse(AuditLogInvalidUser.InvalidUserName.toString());
-
-			
-		}
 		auditLogService.sendAuditLogToSqs(Integer.toString(status), userID, userName, "", message, apiEndpoint, AuditLogResponseStatus.FAILED.toString(), httpMethod, message);
 	}
 }

@@ -69,7 +69,6 @@ public class UserServiceTest {
 				userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
 		userRequest.setAuthProvider(AuthProvider.GOOGLE);
-		user.setPreferences("food");
 		user.setUserId(userRequest.getUserId());
 		user.setAuthProvider(userRequest.getAuthProvider());
 		mockUsers.add(user);
@@ -165,25 +164,6 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void getAllActiveUsersByPreferences() throws Exception {
-
-		List<UserDTO> userDTOList = new ArrayList<UserDTO>();
-		Pageable pageable = PageRequest.of(0, 10);
-		Page<User> mockUserPages = new PageImpl<>(mockUsers, pageable, mockUsers.size());
-
-		Mockito.when(userRepository.findByPreferences("clothing", true, true, RoleType.CUSTOMER, pageable))
-				.thenReturn(mockUserPages);
-		Map<Long, List<UserDTO>> userPages = userService.findUsersByPreferences("clothing", pageable);
-
-		for (Map.Entry<Long, List<UserDTO>> entry : userPages.entrySet()) {
-			userDTOList = entry.getValue();
-
-		}
-		assertEquals(mockUsers.size(), userDTOList.size());
-		assertEquals(mockUsers.get(0).getEmail(), userDTOList.get(0).getEmail());
-	}
-
-	@Test
 	void resetPassword() throws Exception {
 
 		Mockito.when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
@@ -204,33 +184,6 @@ public class UserServiceTest {
 
 	}
 
-	@Test
-	void deletePreferencesByUser() throws Exception {
-
-		ArrayList<String> deletedPreferenceList = new ArrayList<String>();
-		deletedPreferenceList.add("food");
-		userRequest.setPreferences(deletedPreferenceList);
-		Mockito.when(userService.findByUserId(user.getUserId())).thenReturn(user);
-		Mockito.when(userRepository.save(user)).thenReturn(user);
-
-		UserDTO updateUser = userService.deletePreferencesByUser(userRequest.getUserId(), userRequest.getPreferences());
-		assertEquals(updateUser.getPreferences(), null);
-
-	}
-
-	@Test
-	void updatePreferencesByUser() throws Exception {
-
-		ArrayList<String> updatedPreferenceList = new ArrayList<String>();
-		updatedPreferenceList.add("clothing");
-		Mockito.when(userService.findByUserId(user.getUserId())).thenReturn(user);
-		Mockito.when(userRepository.save(user)).thenReturn(user);
-
-		UserDTO updateUser = userService.updatePreferencesByUser(user.getUserId(), updatedPreferenceList);
-		assertEquals(updateUser.getPreferences().isEmpty(), false);
-		assertEquals(updateUser.getPreferences().size(), 1);
-		assertNotNull(updateUser.getPreferences());
-	}
 
 	@Test
 	void updateUserRole() throws Exception {

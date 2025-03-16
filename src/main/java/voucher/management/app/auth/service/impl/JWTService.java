@@ -14,11 +14,9 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuditLogInvalidUser;
 
-import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -97,16 +95,28 @@ public class JWTService {
 				.build();
 		return userDetails;
 	}
+    
+	public String retrieveUserID(String token) throws JwtException, IllegalArgumentException, Exception {
+		try {
+			return extractClaim(token, Claims::getSubject);
+		} catch (ExpiredJwtException e) {
+			return e.getClaims().getSubject();
+		} catch (Exception e) {
+			return AuditLogInvalidUser.InvalidUserID.toString();
+		}
+	}
 	
-    public String hashWithSHA256(String token) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashedBytes = digest.digest(token.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(hashedBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error hashing refresh token", e);
-        }
-    }
+	public String retrieveUserName(String token) throws JwtException, IllegalArgumentException, Exception {
+		try {
+			Claims claims = extractAllClaims(token);
+			String userName = claims.get("userName", String.class);
+			return userName;
+		} catch (ExpiredJwtException e) {
+			return e.getClaims().get("userName", String.class);
+		} catch (Exception e) {
+			return AuditLogInvalidUser.InvalidUserName.toString();
+		}
+	}
 
 
 }

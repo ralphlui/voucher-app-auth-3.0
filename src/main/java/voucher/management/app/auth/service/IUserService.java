@@ -25,17 +25,11 @@ public interface IUserService {
 	 
 	 UserDTO update(UserRequest userRequest);
 	 
-	 Map<Long, List<UserDTO>> findUsersByPreferences(String preferences, Pageable pageable);
-	 
 	 UserDTO resetPassword(String userId, String password);
 	 
 	 UserDTO checkSpecificActiveUser(String userId);
 	 
-	 UserDTO deletePreferencesByUser(String userId, List<String> preferences) throws Exception ;
-	 
 	 User findByUserId(String userId);
-	 
-	 UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception;
 	 
 	 UserDTO updateRoleByUser(String userId,RoleType role);
 	 

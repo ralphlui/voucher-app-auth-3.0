@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import voucher.management.app.auth.dto.*;
+import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.exception.UserNotFoundException; 
 import voucher.management.app.auth.service.impl.*;
 import voucher.management.app.auth.strategy.impl.*;
@@ -37,6 +38,9 @@ public class OTPController {
 	
 	@Autowired
 	private APIResponseStrategy apiResponseStrategy;
+	
+	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
+	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
 
 	@PostMapping(value = "/generate", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> generateOtp(
@@ -56,9 +60,12 @@ public class OTPController {
 
 				logger.error("Generate OTP validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod);
+						activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(), validationResult.getUserName());
 			}
 
+			auditLogUserId = validationResult.getUserId();
+			auditLogUserName = validationResult.getUserName();
+			
 			String otp = otpService.generateOTP(userRequest.getEmail());
 			
 
@@ -73,11 +80,12 @@ public class OTPController {
 			
 			if (isSent) {
 				
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, userDTO.getUserID(),
+						userDTO.getUsername());
 			} else {
 				message = "OTP email sending failed.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
-						apiEndPoint, httpMethod,HttpStatus.INTERNAL_SERVER_ERROR);
+						apiEndPoint, httpMethod,HttpStatus.INTERNAL_SERVER_ERROR, userDTO.getUserID(), userDTO.getUsername());
 			}
 			
 
@@ -87,7 +95,7 @@ public class OTPController {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		}
 	}
 
@@ -109,21 +117,24 @@ public class OTPController {
 
 				logger.error("Generate OTP validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod);
+						activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(), validationResult.getUserName());
 			}
 
 			message = "";
+			auditLogUserId = validationResult.getUserId();
+			auditLogUserName = validationResult.getUserName();
 			boolean isValid = otpService.validateOTP(userRequest.getEmail(), userRequest.getOtp());
 			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
 			
 			if (isValid) {
 				message = "OTP is valid.";
 				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers, userDTO.getUserID()
+						, userDTO.getUsername());
 			} else {
 				message = "OTP expired or incorrect";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType, activityDesc, message,
-						apiEndPoint, httpMethod,HttpStatus.BAD_REQUEST);
+						apiEndPoint, httpMethod,HttpStatus.BAD_REQUEST, userDTO.getUserID(), userDTO.getUsername());
 			}
 			
 
@@ -134,7 +145,7 @@ public class OTPController {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
-					activityDesc, apiEndPoint, httpMethod);
+					activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		}
 	}
