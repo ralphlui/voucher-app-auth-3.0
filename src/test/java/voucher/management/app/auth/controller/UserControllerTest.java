@@ -24,7 +24,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseCookie;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -186,8 +185,7 @@ public class UserControllerTest {
 
 		Mockito.when(userService.verifyUser(verificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify/{verifyid}", verificationCode)	
-				.header("X-User-Id", testUser.getUserId()))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify/{verifyid}", verificationCode))	
 		        .andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true))
@@ -236,7 +234,6 @@ public class UserControllerTest {
 
 		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/{id}/resetPassword", testUser.getUserId())
 				.contentType(MediaType.APPLICATION_JSON)
-				.header("X-User-Id", testUser.getUserId())
 				.content(objectMapper.writeValueAsString(userRequest)))
 		         .andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -329,7 +326,7 @@ public class UserControllerTest {
 	@Test
 	public void testRefreshToken() throws Exception {
 		mockMvc.perform(
-				MockMvcRequestBuilders.post("/api/users/refreshToken").header("X-User-Id", testUser.getUserId()))
+				MockMvcRequestBuilders.post("/api/users/refreshToken"))
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.message").value("Refresh token is missing")).andDo(print());
 	}
