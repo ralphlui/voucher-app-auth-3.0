@@ -21,7 +21,7 @@ public class OTPStorageService {
 	@Autowired
 	private AWSConfig awsConfig;
 	
-	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+	private static final Logger logger = LoggerFactory.getLogger(OTPStorageService.class);
 	
     private final Cache<String, Integer> otpCache = Caffeine.newBuilder()
             .expireAfterWrite(10, TimeUnit.MINUTES)

@@ -28,6 +28,7 @@ import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
+import voucher.management.app.auth.service.impl.OTPService;
 import voucher.management.app.auth.service.impl.OTPStorageService;
 import voucher.management.app.auth.service.impl.RefreshTokenService;
 import voucher.management.app.auth.service.impl.UserService;
@@ -45,7 +46,7 @@ class OTPControllerTest {
     private MockMvc mockMvc;
     
     @Mock
-    private OTPStorageService otpService;
+    private OTPService otpService;
     
     @Mock
     private UserValidationStrategy userValidationStrategy;
@@ -98,7 +99,7 @@ class OTPControllerTest {
         userDTO.setUserID("123412");
         
         when(userValidationStrategy.validateObject(userRequest.getEmail())).thenReturn(validationResult);
-        when(otpService.generateAndStoreOTP(userRequest.getEmail())).thenReturn(123456);
+        when(otpService.generateOTP(userRequest.getEmail())).thenReturn("123456");
         when(userService.checkSpecificActiveUser("123")).thenReturn(userDTO);
         
         mockMvc.perform(post("/api/otp/generate")

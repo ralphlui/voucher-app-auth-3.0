@@ -7,16 +7,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.exception.UserNotFoundException; 
 import voucher.management.app.auth.service.impl.*;
 import voucher.management.app.auth.strategy.impl.*;
 import voucher.management.app.auth.utility.CookieUtils;
+import voucher.management.app.auth.utility.GeneralUtility;
 
 @RestController
 @RequestMapping("/api/otp")
@@ -25,7 +24,7 @@ public class OTPController {
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
 	@Autowired
-	private OTPStorageService otpService;
+	private OTPService otpService;
 
 	@Autowired
 	private UserValidationStrategy userValidationStrategy;
@@ -60,16 +59,16 @@ public class OTPController {
 						activityType, activityDesc, apiEndPoint, httpMethod);
 			}
 
-			int otp = otpService.generateAndStoreOTP(userRequest.getEmail());
+			String otp = otpService.generateOTP(userRequest.getEmail());
 			
 
-			if (otp > 0) {
-				message = "OTP sent to " +userRequest.getEmail() + ". It is valid for 10 minutes.";
+			if (!GeneralUtility.makeNotNull(otp).equals("")) {
+				message = "OTP sent to "+otp +userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
 			
-			otpService.sendOtpEmail(otp, userRequest.getEmail());
+			otpService.sendOTPEmail(otp, userRequest.getEmail());
 			UserDTO userDTO = userService.checkSpecificActiveUser(userID);
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,

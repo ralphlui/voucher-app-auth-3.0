@@ -17,7 +17,7 @@ public class UserRequest {
 	
     private AuthProvider authProvider;
     
-    private int otp;
+    private String otp;
 
 	public UserRequest() {
 		super();
@@ -123,11 +123,11 @@ public class UserRequest {
 		this.authProvider = authProvider;
 	}
 
-	public int getOtp() {
+	public String getOtp() {
 		return otp;
 	}
 
-	public void setOtp(int otp) {
+	public void setOtp(String otp) {
 		this.otp = otp;
 	}
 	
