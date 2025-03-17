@@ -92,7 +92,7 @@ public class UserControllerTest {
 	@MockBean
 	private RefreshTokenService refreshTokenService;
 
-	@Mock
+	@MockBean
 	private GoogleAuthService googleAuthService;
 
 	@Mock
@@ -431,12 +431,33 @@ public class UserControllerTest {
 		when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(mockUserDTO);
 
 		when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
-				eq("Successfully get google user info."), anyString(), anyString(), any(), any()))
+				eq("Successfully get Google user info."), anyString(), anyString(), any(), any()))
 				.thenReturn(ResponseEntity.status(HttpStatus.OK).build());
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo").header("Authorization", validIdToken))
-				.andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true))
+		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
+				.header("Authorization", validIdToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Successfully get Google user info."));
 	}
+	
+	@Test
+	void getGoogleUserInfo_NotFound() throws Exception {
+	    
+	    when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(null);
+
+	   
+	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+	            eq("Failed to get Google user info."), anyString(), anyString(), any(), any()))
+	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+
+	    mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
+	            .header("Authorization", validIdToken))
+	            .andExpect(status().isBadRequest())
+	            .andExpect(jsonPath("$.success").value(false))
+	            .andExpect(jsonPath("$.message").value("Failed to get Google user info."));  
+	    
+	}
+
 
 }

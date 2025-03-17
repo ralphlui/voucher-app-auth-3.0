@@ -533,13 +533,13 @@ public class UserController {
 
 			
 			UserDTO userDTO = googleAuthService.verifyAndGetUserInfo(token);
-			if (userDTO != null) {
+			if (userDTO != null && userDTO.getEmail() !=null) {
 				message = "Successfully get Google user info.";
 				
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
 			} else {
-				message = "Failed to get google user info.";
+				message = "Failed to get Google user info.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType,
 						activityDesc, message, apiEndPoint, httpMethod, HttpStatus.BAD_REQUEST, auditLogUserId,
 						auditLogUserName);

@@ -104,7 +104,7 @@ public class UserService implements IUserService  {
 			user.setRole(userReq.getRole());
 			
 			user.setCreatedDate(LocalDateTime.now());
-			String preferences = formatPreferencesString(userReq.getPreferences());
+			 
 			logger.info("Create User...");
 			User createdUser = userRepository.save(user);
 			
