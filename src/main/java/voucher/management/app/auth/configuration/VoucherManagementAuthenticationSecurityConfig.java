@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.HstsHeaderWriter;
@@ -21,7 +20,6 @@ import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import voucher.management.app.auth.jwt.JwtFilter;
-import voucher.management.app.auth.service.impl.OAuth2AuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -35,7 +33,7 @@ public class VoucherManagementAuthenticationSecurityConfig {
 	public String getFrontEndUrl() {
 		return frontEndUrl;
 	}
-
+	
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
@@ -66,27 +64,8 @@ public class VoucherManagementAuthenticationSecurityConfig {
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-	            .oauth2Login(oauth2 -> 
-	                oauth2
-	                    .userInfoEndpoint(userInfo -> 
-	                        userInfo.oidcUserService(oidcUserService())
-	                    )
-	                    .successHandler(oauth2AuthenticationSuccessHandler())
-	            )
-				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 	            .build();
 	}
-
-	@Bean
-    public OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler() {
-        return new OAuth2AuthenticationSuccessHandler(frontEndUrl);
-    }
-
-    @Bean
-    public OidcUserService oidcUserService() {
-        return new OidcUserService();
-    }
-    
 	
 
 }
