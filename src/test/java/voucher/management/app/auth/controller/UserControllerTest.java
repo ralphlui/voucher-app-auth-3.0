@@ -458,6 +458,45 @@ public class UserControllerTest {
 	            .andExpect(jsonPath("$.message").value("Failed to get Google user info."));  
 	    
 	}
+	
+	
+	@Test
+	void postGenerateAccessToken() throws Exception {
+	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
+	            .thenReturn(DTOMapper.toUserDTO(testUser));
+
+	    when(jwtService.generateToken(anyString(), anyString(), anyString(), anyBoolean()))
+	            .thenReturn("mockAccessToken");
+
+	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+	            eq("Access token generated successfully."), anyString(), anyString(), any(), any()))
+	            .thenReturn(ResponseEntity.status(HttpStatus.OK).build());
+
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isOk())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(true))
+	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));  
+	}
+
+	@Test
+	void postGenerateAccessToken_UserNotFound() throws Exception {
+	    when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(null);
+
+	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+	            eq("Invalid user."), anyString(), anyString(), any(), any()))
+	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	    
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isBadRequest())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(false))
+	            .andExpect(jsonPath("$.message").value("Invalid user."));
+	}
 
 
 }

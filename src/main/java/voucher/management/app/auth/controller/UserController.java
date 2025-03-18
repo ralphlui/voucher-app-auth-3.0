@@ -437,6 +437,69 @@ public class UserController {
 		}
 
 	}
+	
+	@PostMapping("/accessToken")
+	public ResponseEntity<APIResponse<JWTDTO>> generateAccessToken( @RequestBody UserRequest userRequest) {
+		
+		String message = "";
+		String activityType = "Authentication-AccessToken";
+		String apiEndPoint = "/api/users/accessToken";
+		String httpMethod = HttpMethod.POST.name();
+		String activityDesc = "Requesting new access token is failed due to ";
+
+		try {
+			String userEmail = userRequest.getEmail();
+			
+			
+			if(GeneralUtility.makeNotNull(userEmail).equals("")) {
+				message ="Invalid user.";
+				logger.info("Requesting access Token: " + message);
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
+						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
+			
+			}
+			
+			//find user
+			UserDTO user = userService.checkSpecificActiveUserByEmail(userEmail);
+			if( user == null) {
+				message ="Invalid user.";
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
+						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
+			
+			}
+			auditLogUserId = user.getUserID();
+			auditLogUserName =user.getUsername();
+			
+			String accessToken = jwtService.generateToken(user.getUsername(), userEmail, user.getUserID(), false);
+
+			if (accessToken!=null) {
+				             
+				HttpStatus httpStatus = HttpStatus.OK;
+				message = "Access token generated successfully.";
+				JWTDTO jwt= new JWTDTO();
+				jwt.setToken(accessToken);
+				 
+				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
+						auditLogUserName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+				return ResponseEntity.status(httpStatus).body(APIResponse.success(jwt, message));
+
+
+			} else {
+				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
+				message = "Failed to generate token.";
+				logger.info("Requesting access Token: " + message);
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
+						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
+			}
+
+		} catch (Exception e) {
+			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
+					HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod,
+					auditLogUserId, auditLogUserName);
+
+		}
+
+	}
 
 	@GetMapping("/validateToken")
 	public <T> ResponseEntity<APIResponse<T>> verifyToken(@RequestHeader("Authorization") String authorizationHeader) {
@@ -519,7 +582,7 @@ public class UserController {
 	}
 
 	@GetMapping("/google/userinfo")
-	public ResponseEntity<APIResponse<UserDTO>> getGoogleUserInfo(@RequestHeader("Authorization") String idToken) {
+	public ResponseEntity<APIResponse<UserDTO>> getGoogleUserInfo(@RequestHeader("Authorization") String authorizationHeader) {
 
 		logger.info("Call user Get Googel User Info API...");
 		String message;
@@ -529,8 +592,16 @@ public class UserController {
 		String activityDesc = "Get google User-Info failed";
 
 		try {
-			 String token = idToken.replace("Bearer ", "");
+			
+			    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+			       
+			        return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(null, activityType,
+							activityDesc, "Authorization header is invalid", apiEndPoint, httpMethod, HttpStatus.UNAUTHORIZED, auditLogUserId,
+							auditLogUserName);
+			    }
 
+			    String token = authorizationHeader.substring(7);
+			
 			
 			UserDTO userDTO = googleAuthService.verifyAndGetUserInfo(token);
 			if (userDTO != null && userDTO.getEmail() !=null) {
