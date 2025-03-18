@@ -75,6 +75,8 @@ public class UserController {
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
 	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
 	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
+	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
+	
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
@@ -340,45 +342,54 @@ public class UserController {
 	}
 
 	@PostMapping(value = "/logout", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(@RequestHeader("Authorization") String authorizationHeader,
-			HttpServletRequest request) {
+	public ResponseEntity<APIResponse<UserDTO>> lgoutUser(HttpServletRequest request) {
 		logger.info("Call user update Preferences API...");
 		String message;
 		String activityType = "Authentication-Logout";
 		String apiEndPoint = "/api/users/logout";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Logging out user is failed due to ";
+		String userID = AuditLogInvalidUser.InvalidUserID.toString();
+
+		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, "access_token").orElse(null);
+
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", "", true, 0);
+		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
 
 		try {
-			String userID = retrieveUserID(authorizationHeader);
+			userID = jwtService.retrieveUserID(tokenFromCookie);
 			User user = userService.findByUserId(userID);
-			retrieveUserIDAndNameFromToken(authorizationHeader);
+			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
+
 			if (user != null) {
 
-				ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
-				ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", "", true, 0);
-				HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
-
-				String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);
+				String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
 				refreshTokenService.updateRefreshToken(refreshToken, true);
 
 				message = "User logout successfully";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(DTOMapper.toUserDTO(user),
 						activityType, message, apiEndPoint, httpMethod, headers, auditLogUserId, auditLogUserName);
 			} else {
-				message = "User not found";
+				message = "User not found, session cleared.";
 				logger.error(message);
 				// To Do
 				auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.NOT_FOUND.value()), userID,
 						auditLogUserName, activityType, activityDesc.concat(message), apiEndPoint,
 						auditLogResponseFailure, httpMethod, message);
-				return ResponseEntity.status(HttpStatus.NOT_FOUND).body(APIResponse.error(message));
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).headers(headers).body(APIResponse.error(message));
 
 			}
 		} catch (Exception e) {
-			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e,
-					HttpStatus.INTERNAL_SERVER_ERROR, activityType, activityDesc, apiEndPoint, httpMethod,
-					auditLogUserId, auditLogUserName);
+			message = e.getMessage();
+			String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
+			logger.error(message);
+			activityDesc = activityDesc.concat(message);
+			auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value()), userID,
+					auditLogUserName, activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod,
+					e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).headers(headers)
+					.body(APIResponse.error(responseMessage));
 		}
 
 	}
@@ -386,7 +397,7 @@ public class UserController {
 	@PostMapping("/refreshToken")
 	public <T> ResponseEntity<APIResponse<T>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
-		String refreshToken = cookieUtils.getRefreshTokenFromCookies(request, "refresh_token").orElse(null);
+		String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
 		String message = "";
 		String activityType = "Authentication-RefreshToken";
 		String apiEndPoint = "/api/users/refreshToken";

@@ -342,7 +342,7 @@ public class UserControllerTest {
 		String refreshToken = "mockRefreshToken";
 		Optional<String> cookieValue = Optional.ofNullable(refreshToken);
 
-		when(cookieUtils.getRefreshTokenFromCookies(request, cookieName)).thenReturn(cookieValue);
+		when(cookieUtils.getTokenFromCookies(request, cookieName)).thenReturn(cookieValue);
 		mockMvc.perform(
 				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
 				.andExpect(jsonPath("$.success").value(false))
