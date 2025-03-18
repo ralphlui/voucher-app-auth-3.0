@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
-import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 

@@ -226,25 +226,6 @@ public class UserService implements IUserService  {
 
 	}
 	
-	private String formatPreferencesString(List<String> preferencesList) {
-		String preferences = preferencesList == null ? "" : String.join(",", preferencesList);
-		String removedWhiteSpacePreferences = preferences.replaceAll("\\s*,\\s*", ",");
-		return removedWhiteSpacePreferences.trim();
-	}
-	
-//	private void addExistingPreferences(UserRequest userRequest, User dbUser) {
-//		String[] preferencesArray = dbUser.getPreferences().split(",");
-//		 Set<String> uniqueValuesSet = new HashSet<>(Arrays.asList(preferencesArray));
-//		for (String preference : userRequest.getPreferences()) {
-//			if (!uniqueValuesSet.contains(preference.trim())) {
-//				uniqueValuesSet.add(preference.trim());
-//			}
-//		}
-//		String preferences = String.join(",", uniqueValuesSet);
-//		dbUser.setPreferences(preferences);
-//	}
-	
-
 	public void sendVerificationEmail(User user) {
 
 		try {
@@ -371,7 +352,7 @@ public class UserService implements IUserService  {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
 				logger.error("Active user is not found.");
-				throw new UserNotFoundException("This user is not an active user");
+				throw new UserNotFoundException("This user is not an active or verified user");
 			}
 			logger.info("Active user is found.");
 			return user;

@@ -1,7 +1,5 @@
 package voucher.management.app.auth.controller;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.Map;
 
@@ -17,8 +15,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.google.auth.oauth2.TokenVerifier.VerificationException;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

@@ -52,14 +52,7 @@ import voucher.management.app.auth.utility.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -99,7 +92,6 @@ public class UserControllerTest {
 	private APIResponseStrategy apiResponseStrategy;
 
 	private String validIdToken = "Bearer valid-id-token";
-	private String invalidIdToken = "Bearer invalid-id-token";
 	private UserDTO mockUserDTO;
 
 	User testUser;
