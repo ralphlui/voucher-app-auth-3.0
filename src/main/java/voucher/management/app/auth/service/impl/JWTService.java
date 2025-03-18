@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
 import voucher.management.app.auth.configuration.JWTConfig;
+import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 
@@ -89,7 +90,7 @@ public class JWTService {
 	
 	public UserDetails getUserDetail(String token) throws JwtException, IllegalArgumentException, Exception {
 		String userID = extractUserID(token);
-		User user = context.getBean(UserService.class).findByUserId(userID);
+		User user = context.getBean(UserService.class).findActiveUserByID(userID);
 		UserDetails userDetails = org.springframework.security.core.userdetails.User
 				.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole().toString())
 				.build();

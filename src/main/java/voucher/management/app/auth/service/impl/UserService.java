@@ -199,6 +199,8 @@ public class UserService implements IUserService  {
 		return userRepository.findByUserIdAndStatus(userId, isActive, isVerified);
 	}
 	
+	
+	
 	@Override
 	public UserDTO update(UserRequest userRequest) {
 		try {
@@ -358,6 +360,24 @@ public class UserService implements IUserService  {
 			
 		} catch (Exception e) {
 			logger.error("Error occurred while checking specific active User by Email, " + e.toString());
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	@Override
+	public User findActiveUserByID(String userId) {
+		try {
+			User user = findByUserIdAndStatus(userId, true, true);
+			if (user == null) {
+				logger.error("Active user is not found.");
+				throw new UserNotFoundException("This user is not an active user");
+			}
+			logger.info("Active user is found.");
+			return user;
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while checking specific active User, " + e.toString());
 			e.printStackTrace();
 			throw e;
 		}

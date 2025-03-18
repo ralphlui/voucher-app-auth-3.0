@@ -34,4 +34,6 @@ public interface IUserService {
 	 UserDTO updateRoleByUser(String userId,RoleType role);
 	 
 	 UserDTO checkSpecificActiveUserByEmail(String email);
+	 
+	 User findActiveUserByID(String userId);
 }
