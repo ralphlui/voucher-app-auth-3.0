@@ -199,6 +199,8 @@ public class UserService implements IUserService  {
 		return userRepository.findByUserIdAndStatus(userId, isActive, isVerified);
 	}
 	
+	
+	
 	@Override
 	public UserDTO update(UserRequest userRequest) {
 		try {
@@ -224,25 +226,6 @@ public class UserService implements IUserService  {
 
 	}
 	
-	private String formatPreferencesString(List<String> preferencesList) {
-		String preferences = preferencesList == null ? "" : String.join(",", preferencesList);
-		String removedWhiteSpacePreferences = preferences.replaceAll("\\s*,\\s*", ",");
-		return removedWhiteSpacePreferences.trim();
-	}
-	
-//	private void addExistingPreferences(UserRequest userRequest, User dbUser) {
-//		String[] preferencesArray = dbUser.getPreferences().split(",");
-//		 Set<String> uniqueValuesSet = new HashSet<>(Arrays.asList(preferencesArray));
-//		for (String preference : userRequest.getPreferences()) {
-//			if (!uniqueValuesSet.contains(preference.trim())) {
-//				uniqueValuesSet.add(preference.trim());
-//			}
-//		}
-//		String preferences = String.join(",", uniqueValuesSet);
-//		dbUser.setPreferences(preferences);
-//	}
-	
-
 	public void sendVerificationEmail(User user) {
 
 		try {
@@ -358,6 +341,24 @@ public class UserService implements IUserService  {
 			
 		} catch (Exception e) {
 			logger.error("Error occurred while checking specific active User by Email, " + e.toString());
+			e.printStackTrace();
+			throw e;
+		}
+	}
+	
+	@Override
+	public User findActiveUserByID(String userId) {
+		try {
+			User user = findByUserIdAndStatus(userId, true, true);
+			if (user == null) {
+				logger.error("Active user is not found.");
+				throw new UserNotFoundException("This user is not an active or verified user");
+			}
+			logger.info("Active user is found.");
+			return user;
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while checking specific active User, " + e.toString());
 			e.printStackTrace();
 			throw e;
 		}

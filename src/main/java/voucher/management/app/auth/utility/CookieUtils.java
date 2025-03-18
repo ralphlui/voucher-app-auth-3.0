@@ -36,7 +36,7 @@ public class CookieUtils {
 	            .build();
 	}
 	
-	public Optional<String> getRefreshTokenFromCookies(HttpServletRequest request, String cookieName) {
+	public Optional<String> getTokenFromCookies(HttpServletRequest request, String cookieName) {
         if (request.getCookies() == null) return Optional.empty();
 
         return Arrays.stream(request.getCookies())
