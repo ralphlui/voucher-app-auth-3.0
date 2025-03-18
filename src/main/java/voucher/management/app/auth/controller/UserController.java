@@ -357,11 +357,11 @@ public class UserController {
 			userID = jwtService.retrieveUserID(tokenFromCookie);
 			User user = userService.findByUserId(userID);
 			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
+			
+			String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
+			refreshTokenService.updateRefreshToken(refreshToken, true);
 
 			if (user != null) {
-
-				String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
-				refreshTokenService.updateRefreshToken(refreshToken, true);
 
 				message = "User logout successfully";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(DTOMapper.toUserDTO(user),
@@ -421,7 +421,7 @@ public class UserController {
 				HttpHeaders headers = createCookies(userName, userEmail, userid, null);
 
 				HttpStatus httpStatus = HttpStatus.OK;
-				message = "Refresh token is successful.";
+				message = "Token is refresh successful.";
 
 				refreshTokenService.updateRefreshToken(refreshToken, true);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
