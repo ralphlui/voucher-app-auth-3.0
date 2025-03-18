@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,14 @@ import java.util.Base64;
 
 @Service
 public class JWTService {
+	
+	@Value("${pentest.enable}")
+	private String pentestEnable;
+
+	@Bean
+	public String getPentestEnable() {
+		return pentestEnable;
+	}
 
 	@Autowired
 	private JWTConfig jwtConfig;
@@ -34,8 +44,18 @@ public class JWTService {
 
 	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
-		long tokenValidDuration = isRefreshToken ? System.currentTimeMillis() + 24 * 60 * 60 * 1000
-				: System.currentTimeMillis() + 15 * 60 * 1000;
+		
+		
+		long tokenValidDuration;
+	    
+	    // Check if pentest is enabled and adjust token validity accordingly
+	    if (pentestEnable.equalsIgnoreCase("true")) {
+	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  // 30 minutes validity
+	    } else {
+	        tokenValidDuration = isRefreshToken ? System.currentTimeMillis() + 24 * 60 * 60 * 1000  // 24 hours for refresh token
+	                : System.currentTimeMillis() + 15 * 60 * 1000;  // 15 minutes for normal token
+	    }		
+		
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
 		claims.put("userName", userName);
