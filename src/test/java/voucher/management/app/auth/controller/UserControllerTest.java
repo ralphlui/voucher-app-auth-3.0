@@ -348,7 +348,7 @@ public class UserControllerTest {
 		mockMvc.perform(
 				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.message").value("Refresh token is successful.")).andDo(print());
+				.andExpect(jsonPath("$.message").value("Token refresh is successful.")).andDo(print());
 	}
 
 	@Test

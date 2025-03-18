@@ -421,7 +421,7 @@ public class UserController {
 				HttpHeaders headers = createCookies(userName, userEmail, userid, null);
 
 				HttpStatus httpStatus = HttpStatus.OK;
-				message = "Token is refresh successful.";
+				message = "Token refresh is successful.";
 
 				refreshTokenService.updateRefreshToken(refreshToken, true);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
