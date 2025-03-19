@@ -6,6 +6,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -42,6 +44,9 @@ import org.springframework.data.domain.Sort;
 public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+	
+	@Value("${pentest.enable}")
+	private String pentestEnable;
 
 	@Autowired
 	private UserService userService;
@@ -173,9 +178,16 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";
+			
+			if (pentestEnable.equalsIgnoreCase("true")) {
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers, userDTO.getUserID()
+						, userDTO.getUsername());
+			}else {
 
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 					apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
+			}
 
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.UNAUTHORIZED

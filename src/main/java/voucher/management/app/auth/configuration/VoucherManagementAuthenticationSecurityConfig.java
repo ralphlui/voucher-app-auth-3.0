@@ -34,6 +34,14 @@ public class VoucherManagementAuthenticationSecurityConfig {
 		return frontEndUrl;
 	}
 	
+	@Value("${pentest.enable}")
+	private String pentestEnable;
+
+	@Bean
+	public String getPentestEnable() {
+		return pentestEnable;
+	}
+	
 	@Bean
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();

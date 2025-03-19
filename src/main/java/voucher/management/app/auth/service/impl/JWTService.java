@@ -31,10 +31,6 @@ public class JWTService {
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
-	@Bean
-	public String getPentestEnable() {
-		return pentestEnable;
-	}
 
 	@Autowired
 	private JWTConfig jwtConfig;
