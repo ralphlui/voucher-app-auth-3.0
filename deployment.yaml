@@ -39,6 +39,16 @@ spec:
                 secretKeyRef:
                   name: my-secret
                   key: aws_s3_secret_key_id
+            - name: JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: jwt_public_key
+            - name: JWT_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: jwt_private_key
             - name: SPRING_PROFILES_ACTIVE
               valueFrom:
                 configMapKeyRef:
@@ -54,11 +64,26 @@ spec:
                 configMapKeyRef:
                   name: my-configmap
                   key: FRONTEND_URL
-            - name: AWS_SQS_URL
+            - name: AUDIT_SQS_URL
               valueFrom:
                 configMapKeyRef:
                   name: my-configmap
                   key: AUDIT_SQS_URL
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: my-configmap
+                  key: GOOGLE_CLIENT_ID
+            - name: PENTEST_ENABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: my-configmap
+                  key: PENTEST_ENABLE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: my-configmap
+                  key: REDIS_HOST
           resources:
            requests:
              cpu: "50m"
