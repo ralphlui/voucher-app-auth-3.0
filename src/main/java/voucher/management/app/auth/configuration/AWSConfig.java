@@ -26,7 +26,7 @@ public class AWSConfig {
 	@Value("${aws.ses.from}")
 	private String emailFrom;
 
-	@Value("${aws.sqs.url}")
+	@Value("${aws.sqs.queue.audit.url}")
 	private String sqsURL;
 
 	@Bean
