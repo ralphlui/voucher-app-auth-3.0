@@ -24,7 +24,7 @@ public class APIResponse<T> {
 	}
 
 	public static <T> APIResponse<T> error(T data) {
-		return APIResponse.<T>builder().success(false).message("error").totalRecord(0).build();
+		return APIResponse.<T>builder().success(false).message("error").data(null).totalRecord(0).build();
 	}
 
 	public static <T> APIResponse<T> error(String message) {
