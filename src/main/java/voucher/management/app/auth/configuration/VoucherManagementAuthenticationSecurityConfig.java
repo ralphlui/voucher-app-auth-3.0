@@ -24,7 +24,7 @@ import voucher.management.app.auth.jwt.JwtFilter;
 @Configuration
 @EnableWebSecurity
 public class VoucherManagementAuthenticationSecurityConfig {
-	private static final String[] SECURED_URLs = { "/api/**" };
+	private static final String[] SECURED_URLs = { "/api/users/**" };
 
 	@Value("${frontend.url}")
 	private String frontEndUrl;
