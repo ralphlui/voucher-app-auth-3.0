@@ -98,7 +98,7 @@ class OTPControllerTest {
         when(otpService.generateOTP(userRequest.getEmail())).thenReturn("123456");
         when(userService.checkSpecificActiveUser("123")).thenReturn(userDTO);
         
-        mockMvc.perform(post("/api/otp/generate")
+        mockMvc.perform(post("/api/users/otp/generate")
                 .header("X-User-Id", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(userRequest)))
@@ -150,7 +150,7 @@ class OTPControllerTest {
         when(userService.checkSpecificActiveUser("123")).thenReturn(userDTO);
 
         // Perform the test with the mocked cookies in the headers
-        mockMvc.perform(post("/api/otp/validate")
+        mockMvc.perform(post("/api/users/otp/validate")
                 .header("X-User-Id", "123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(userRequest)))

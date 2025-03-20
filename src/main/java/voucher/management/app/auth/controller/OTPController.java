@@ -19,7 +19,7 @@ import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.GeneralUtility;
 
 @RestController
-@RequestMapping("/api/otp")
+@RequestMapping("/api/users/otp")
 public class OTPController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
