@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
 	ResponseEntity<APIResponse> handleObjectNotFoundException(Exception ex){
 		String message = "Failed to get data. " + ex.getMessage();
 		 logger.error(message);
-		  return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+		  return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
 					.body(APIResponse.error(message));
 	}
 	
