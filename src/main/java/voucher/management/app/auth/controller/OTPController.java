@@ -70,7 +70,7 @@ public class OTPController {
 			
 
 			if (!GeneralUtility.makeNotNull(otp).equals("")) {
-				message = "OTP sent to "+ userRequest.getEmail() + ". It is valid for 10 minutes.";
+				message = "OTP sent to "+otp+ userRequest.getEmail() + ". It is valid for 10 minutes.";
 			}
 			
 			//TO Sent Email...
