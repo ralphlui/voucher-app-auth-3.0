@@ -205,7 +205,7 @@ public class UserControllerTest {
 
 		testUser.setVerificationCode("");
 		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/verify/{verifyid}", ""))
-				.andExpect(MockMvcResultMatchers.status().isInternalServerError())
+				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 
