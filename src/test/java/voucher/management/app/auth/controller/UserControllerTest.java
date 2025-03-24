@@ -102,8 +102,7 @@ public class UserControllerTest {
 
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true,
-				new ArrayList<String>());
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
 		testUser = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
@@ -270,7 +269,7 @@ public class UserControllerTest {
 
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<String>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
@@ -396,7 +395,7 @@ public class UserControllerTest {
 		// Error Case: Update with invalid user ID (e.g., empty X-User-Id)
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 
 		// Mock behavior for the error user
