@@ -565,7 +565,7 @@ public class UserController {
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq.getUserId());
 			if (!validationResult.isValid()) {
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserId);
+						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 		
 			}
 
