@@ -297,7 +297,7 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/active", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/active")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -309,7 +309,7 @@ public class UserControllerTest {
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 		mockMvc.perform(
-				MockMvcRequestBuilders.get("/api/users/{id}/active", errorUser.getUserId()).header("X-User-Id", "")
+				MockMvcRequestBuilders.get("/api/users//active").header("Authorization", authorizationHeader)
 						.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());

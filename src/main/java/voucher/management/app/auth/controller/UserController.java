@@ -311,20 +311,19 @@ public class UserController {
 		}
 	}
 
-	@GetMapping(value = "/{id}/active", produces = "application/json")
+	@GetMapping(value = "/active", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(
-			@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id) {
+			@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
 		logger.info("Call user active API...");
-		logger.info("User ID" + id);
 		String message = "";
 		String activityType = "Authentication-RetrieveActiveUserByUserId";
-		String apiEndPoint = String.format("api/users/%s/active", id);
+		String apiEndPoint = String.format("api/users/active");
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Retrieving active user by id failed due to ";
 
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userRequest.getUserId());
 
 			if (!validationResult.isValid()) {
 
