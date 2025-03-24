@@ -237,8 +237,8 @@ public class UserController {
 
 	}
 
-	@PatchMapping(value = "/{id}/resetPassword", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> resetPassword(@PathVariable("id") String id,
+	@PatchMapping(value = "/resetPassword", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> resetPassword(
 			@RequestBody UserRequest resetPwdReq) {
 
 		logger.info("Call user resetPassword API...");
@@ -246,20 +246,21 @@ public class UserController {
 		logger.info("Reset Password : " + resetPwdReq.getEmail());
 
 		String activityType = "Authentication-ResetPassword";
-		String apiEndPoint = String.format("api/users/%s/resetPassword", id);
+		String apiEndPoint = String.format("api/users/resetPassword");
 		String httpMethod = HttpMethod.PATCH.name();
 		String activityDesc = "Reset password is failed due to ";
 
 		String message = "";
 		try {
-			getUserByUserID(id);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(resetPwdReq.getUserId());
 			if (!validationResult.isValid()) {
 				logger.error("Reset passwrod validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
+			String id = resetPwdReq.getUserId();
+			getUserByUserID(id);
 			UserDTO userDTO = userService.resetPassword(id, resetPwdReq.getPassword());
 			message = "Reset Password is completed.";
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
