@@ -193,17 +193,21 @@ public class UserControllerTest {
 		testUser.setVerified(true);
 		testUser.setActive(true);
 		testUser.setVerificationCode(decodedVerificationCode);
+		userRequest.setAccountVerificationCode(verificationCode);
 
 		Mockito.when(userService.verifyUser(verificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify/{verifyid}", verificationCode))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.verified").value(true))
 				.andDo(print());
 
 		testUser.setVerificationCode("");
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/verify/{verifyid}", ""))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify", "")
+				.contentType(MediaType.APPLICATION_JSON))
 				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());

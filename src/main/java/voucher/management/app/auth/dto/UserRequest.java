@@ -1,7 +1,5 @@
 package voucher.management.app.auth.dto;
 
-import java.util.List;
-
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 
@@ -13,6 +11,7 @@ public class UserRequest {
 	private String password;
 	private Boolean active;
 	private RoleType role;
+	private String accountVerificationCode;
 	
     private AuthProvider authProvider;
     
@@ -116,6 +115,14 @@ public class UserRequest {
 
 	public void setOtp(String otp) {
 		this.otp = otp;
+	}
+
+	public String getAccountVerificationCode() {
+		return accountVerificationCode;
+	}
+
+	public void setAccountVerificationCode(String accountVerificationCode) {
+		this.accountVerificationCode = accountVerificationCode;
 	}
 	
 	

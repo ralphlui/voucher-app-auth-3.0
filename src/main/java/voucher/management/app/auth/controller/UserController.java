@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -197,9 +196,10 @@ public class UserController {
 		}
 	}
 
-	@PatchMapping(value = "/verify/{verifyid}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@PathVariable("verifyid") String verifyid) {
+	@PatchMapping(value = "/verify", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@RequestBody UserRequest userRequest) {
 
+		String verifyid = userRequest.getAccountVerificationCode();
 		logger.info("Call user verify API with verifyToken={}", verifyid);
 		verifyid = GeneralUtility.makeNotNull(verifyid);
 		String message = "";
