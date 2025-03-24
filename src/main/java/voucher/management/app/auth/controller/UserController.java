@@ -547,49 +547,43 @@ public class UserController {
 
 	}
 
-	@PutMapping(value = "/{id}/roles", produces = "application/json")
+	@PutMapping(value = "/roles", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(
-			@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id,
+			@RequestHeader("Authorization") String authorizationHeader,
 			@RequestBody UserRequest roleReq) {
 		logger.info("Call user updateUserRole API...");
 		String message;
 		String activityType = "Authentication-UpdateUserRole";
-		String apiEndPoint = String.format("api/users/%s/roles", id);
+		String apiEndPoint = String.format("api/users/roles");
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User-Role failed due to ";
 
 		try {
-			RoleType role = roleReq.getRole();
 			retrieveUserIDAndNameFromToken(authorizationHeader);
+			
+			// Validate User ID
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq.getUserId());
+			if (!validationResult.isValid()) {
+				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
+						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserId);
+		
+			}
 
+			RoleType role = roleReq.getRole();
 			if (role.equals(null) || role.equals("")) {
 				message = "User Role is invalid.";
 				logger.info("updateUserRole: " + message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-				ValidationResult validationResult = new ValidationResult();
-				validationResult.setMessage(message);
 				validationResult.setStatus(httpStatus);
-				validationResult.setUserId(id);
-				validationResult.setUserName(id);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
-			// Validate User ID
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 
-			if (validationResult.isValid()) {
-				// Get RoleType enum value
-				// Update User Role
-				UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
-				message = "Role is updated successfully.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
-			} else {
-
-				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
-			}
+			UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
+			message = "Role is updated successfully.";
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		} catch (Exception e) {
 			// Exception handling

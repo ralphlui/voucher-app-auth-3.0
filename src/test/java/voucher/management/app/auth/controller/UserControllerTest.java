@@ -385,11 +385,12 @@ public class UserControllerTest {
 
 		UserRequest userRequest = new UserRequest();
 		userRequest.setRole(RoleType.MERCHANT);
+		userRequest.setUserId(testUser.getUserId());
 
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -407,7 +408,7 @@ public class UserControllerTest {
 		// Mock behavior for the error user
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", errorUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(errorUserRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
