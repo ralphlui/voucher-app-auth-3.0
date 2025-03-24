@@ -204,7 +204,7 @@ public class UserController {
 		verifyid = GeneralUtility.makeNotNull(verifyid);
 		String message = "";
 		String activityType = "Authentication-VerifyUser";
-		String apiEndPoint = String.format("api/users/verify/%s", verifyid);
+		String apiEndPoint = String.format("api/users/verify");
 		String httpMethod = HttpMethod.PATCH.name();
 		String activityDesc = "User verification is failed due to ";
 
@@ -274,23 +274,23 @@ public class UserController {
 
 	}
 
-	@PutMapping(value = "/{id}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader,
-			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
+	@PutMapping(value = "", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
 		logger.info("Call user update API...");
 		String message;
 		String activityType = "Authentication-UpdateUser";
-		String apiEndPoint = String.format("api/users/%s", id);
+		String apiEndPoint = String.format("api/users");
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User failed due to ";
+		String userID = userRequest.getUserId();
 
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateUpdating(id);
+			ValidationResult validationResult = userValidationStrategy.validateUpdating(userID);
 
 			if (validationResult.isValid()) {
 
-				userRequest.setUserId(id);
+				userRequest.setUserId(userID);
 				UserDTO userDTO = userService.update(userRequest);
 				message = "User updated successfully.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
