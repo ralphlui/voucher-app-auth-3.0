@@ -312,7 +312,7 @@ public class UserController {
 		}
 	}
 
-	@GetMapping(value = "/active", produces = "application/json")
+	@PostMapping(value = "/active", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(
 			@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
 		logger.info("Call user active API...");
