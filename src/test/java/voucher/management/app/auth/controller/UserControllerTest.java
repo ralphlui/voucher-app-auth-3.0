@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
+import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -427,10 +428,17 @@ public class UserControllerTest {
 		mockUserDTO.setUserID("user-123");
 
 		when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(mockUserDTO);
+		
+		 
+		when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
-		when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+		/*when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
 				eq("Successfully get Google user info."), anyString(), anyString(), any(), any()))
-				.thenReturn(ResponseEntity.status(HttpStatus.OK).build());
+				.thenReturn(ResponseEntity.status(HttpStatus.OK).build());*/
 
 		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
 				.header("Authorization", validIdToken))
@@ -444,10 +452,16 @@ public class UserControllerTest {
 	    
 	    when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(null);
 
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
+
 	   
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+	    /*when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
 	            eq("Failed to get Google user info."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());*/
 
 	    mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
 	            .header("Authorization", validIdToken))
@@ -465,10 +479,16 @@ public class UserControllerTest {
 
 	    when(jwtService.generateToken(anyString(), anyString(), anyString(), anyBoolean()))
 	            .thenReturn("mockAccessToken");
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+
+	   /* when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
 	            eq("Access token generated successfully."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.OK).build());
+	            .thenReturn(ResponseEntity.status(HttpStatus.OK).build());*/
 
 	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
 	            .contentType(MediaType.APPLICATION_JSON)
@@ -482,10 +502,17 @@ public class UserControllerTest {
 	@Test
 	void postGenerateAccessToken_UserNotFound() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(null);
+	    
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
+
+	   /* when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
 	            eq("Invalid user."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());*/
 	    
 	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
 	            .contentType(MediaType.APPLICATION_JSON)

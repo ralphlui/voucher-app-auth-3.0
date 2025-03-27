@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 
 import voucher.management.app.auth.dto.APIResponse;
+import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.ValidationResult;
 
@@ -18,7 +19,14 @@ public interface IAPIResponseStrategy {
 
 			String httpMethod, String userId, String userName);
 	
-	ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
+	/*ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
 			String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName);
+    */
+
+	ResponseEntity<APIResponse<UserDTO>> handleResponseAndSendAuditLogForSuccessCase(
+	        UserDTO userDTO,
+	        String message,
+	        AuditLogRequest auditLogRequest
+	);
 
 }

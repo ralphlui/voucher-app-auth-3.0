@@ -90,7 +90,8 @@ public class UserController {
 		String apiEndPoint = "api/users";
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Retreving active user list is failed due to ";
-
+		
+		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 
@@ -131,7 +132,9 @@ public class UserController {
 		String apiEndPoint = "api/users";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "User registration is failed due to ";
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 			ValidationResult validationResult = userValidationStrategy.validateCreation(userRequest);
 			auditLogUserName = validationResult.getUserName();
@@ -140,8 +143,11 @@ public class UserController {
 				userRequest.setAuthProvider(AuthProvider.NATIVE);
 				UserDTO userDTO = userService.createUser(userRequest);
 				message = userRequest.getEmail() + " is created successfully";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
+                auditReq.setActivityDescription(message);
+                auditReq.setStatusCode("200");
+                auditReq.setResponseStatus(auditLogResponseSuccess);
+				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+				
 			} else {
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(),
@@ -163,7 +169,9 @@ public class UserController {
 		String apiEndPoint = "api/users/login";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "User failed to login due to ";
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 			ValidationResult validationResult = userValidationStrategy.validateObject(userRequest.getEmail());
 			auditLogUserId = validationResult.getUserId();
@@ -187,8 +195,12 @@ public class UserController {
 						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
 			} else {
 
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
+				auditReq.setActivityDescription(message);
+                auditReq.setStatusCode("200");
+                auditReq.setResponseStatus(auditLogResponseSuccess);
+				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+				
+				
 			}
 
 		} catch (Exception e) {
@@ -211,7 +223,9 @@ public class UserController {
 		String apiEndPoint = String.format("api/users/verify");
 		String httpMethod = HttpMethod.PATCH.name();
 		String activityDesc = "User verification is failed due to ";
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 
 			if (!verifyid.isEmpty()) {
@@ -219,8 +233,12 @@ public class UserController {
 				auditLogUserId = verifiedUserDTO.getUserID();
 				auditLogUserName = verifiedUserDTO.getUsername();
 				message = "User successfully verified.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(verifiedUserDTO, activityType,
-						message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+				auditReq.setActivityDescription(message);
+                auditReq.setStatusCode("200");
+                auditReq.setResponseStatus(auditLogResponseSuccess);
+				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(verifiedUserDTO, message, auditReq);
+				
+								
 			} else {
 
 				message = "Vefriy Id could not be blank.";
@@ -255,6 +273,10 @@ public class UserController {
 		String activityDesc = "Reset password is failed due to ";
 
 		String message = "";
+		
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(resetPwdReq.getUserId());
 			if (!validationResult.isValid()) {
@@ -267,8 +289,12 @@ public class UserController {
 			getUserByUserID(id);
 			UserDTO userDTO = userService.resetPassword(id, resetPwdReq.getPassword());
 			message = "Reset Password is completed.";
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+			auditReq.setActivityDescription(message);
+            auditReq.setStatusCode("200");
+            auditReq.setResponseStatus(auditLogResponseSuccess);
+			return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+			
+			
 
 		} catch (Exception e) {
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
@@ -289,7 +315,9 @@ public class UserController {
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User failed due to ";
 		String userID = userRequest.getUserId();
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 			ValidationResult validationResult = userValidationStrategy.validateUpdating(userID);
@@ -299,8 +327,12 @@ public class UserController {
 				userRequest.setUserId(userID);
 				UserDTO userDTO = userService.update(userRequest);
 				message = "User updated successfully.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+				auditReq.setActivityDescription(message);
+	            auditReq.setStatusCode("200");
+	            auditReq.setResponseStatus(auditLogResponseSuccess);
+				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+				
+				
 
 			} else {
 				// To Do
@@ -324,9 +356,12 @@ public class UserController {
 		String message = "";
 		String activityType = "Authentication-RetrieveActiveUserByUserId";
 		String apiEndPoint = String.format("api/users/active");
-		String httpMethod = HttpMethod.GET.name();
+		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Retrieving active user by id failed due to ";
-
+		
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userRequest.getUserId());
@@ -342,8 +377,12 @@ public class UserController {
 
 			UserDTO userDTO = userService.checkSpecificActiveUser(validationResult.getUserId());
 			message = userDTO.getEmail() + " is Active";
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+			auditReq.setActivityDescription(message);
+            auditReq.setStatusCode("200");
+            auditReq.setResponseStatus(auditLogResponseSuccess);
+			return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+			
+		
 
 		} catch (Exception e) {
 			// To Do
@@ -560,7 +599,9 @@ public class UserController {
 		String apiEndPoint = String.format("api/users/roles");
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User-Role failed due to ";
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+			
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 
@@ -586,8 +627,12 @@ public class UserController {
 
 			UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
 			message = "Role is updated successfully.";
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+			auditReq.setActivityDescription(message);
+            auditReq.setStatusCode("200");
+            auditReq.setResponseStatus(auditLogResponseSuccess);
+			return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+			
+		
 
 		} catch (Exception e) {
 			// Exception handling
@@ -608,7 +653,9 @@ public class UserController {
 		String apiEndPoint = "/google/userinfo";
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Get google User-Info failed";
-
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
+		
 		try {
 
 			if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
@@ -623,9 +670,11 @@ public class UserController {
 			UserDTO userDTO = googleAuthService.verifyAndGetUserInfo(token);
 			if (userDTO != null && userDTO.getEmail() != null) {
 				message = "Successfully get Google user info.";
-
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
+				auditReq.setActivityDescription(message);
+				
+				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+				
+				 
 			} else {
 				message = "Failed to get Google user info.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType,
