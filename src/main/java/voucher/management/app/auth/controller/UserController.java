@@ -43,7 +43,7 @@ import org.springframework.data.domain.Sort;
 public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
-	
+
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
@@ -65,18 +65,20 @@ public class UserController {
 	@Autowired
 	private RefreshTokenService refreshTokenService;
 
-	@Autowired
-	private APIResponseStrategy apiResponseStrategy;
+	private final GoogleAuthService googleAuthService;
 
-	@Autowired
-	private GoogleAuthService googleAuthService;
+	private final APIResponseStrategy apiResponseStrategy;
+
+	public UserController(GoogleAuthService googleAuthService,APIResponseStrategy apiResponseStrategy) {
+		this.googleAuthService = googleAuthService;
+		this.apiResponseStrategy = apiResponseStrategy;
+	}
 
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
 	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
 	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
 	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
-	
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
@@ -177,15 +179,16 @@ public class UserController {
 
 			UserDTO userDTO = userService.loginUser(userRequest.getEmail(), userRequest.getPassword());
 			message = userDTO.getEmail() + " login successfully";
-			
-			if (pentestEnable.equalsIgnoreCase("true")) {
-				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(),userDTO.getEmail(), userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message, apiEndPoint, httpMethod, headers, userDTO.getUserID()
-						, userDTO.getUsername());
-			}else {
 
-			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-					apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
+			if (pentestEnable.equalsIgnoreCase("true")) {
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(), userDTO.getEmail(),
+						userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
+			} else {
+
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
 			}
 
 		} catch (Exception e) {
@@ -200,7 +203,8 @@ public class UserController {
 	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@RequestBody UserRequest userRequest) {
 
 		String verifyid = userRequest.getAccountVerificationCode();
-		logger.info("Call user verify API with verifyToken={}", verifyid);
+		logger.info("Call user verify API with verifyToken");
+
 		verifyid = GeneralUtility.makeNotNull(verifyid);
 		String message = "";
 		String activityType = "Authentication-VerifyUser";
@@ -238,12 +242,12 @@ public class UserController {
 	}
 
 	@PatchMapping(value = "/resetPassword", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> resetPassword(
-			@RequestBody UserRequest resetPwdReq) {
+	public ResponseEntity<APIResponse<UserDTO>> resetPassword(@RequestBody UserRequest resetPwdReq) {
 
 		logger.info("Call user resetPassword API...");
 
-		logger.info("Reset Password : " + resetPwdReq.getEmail());
+		logger.info("Reset Password request received");
+
 
 		String activityType = "Authentication-ResetPassword";
 		String apiEndPoint = String.format("api/users/resetPassword");
@@ -276,7 +280,8 @@ public class UserController {
 	}
 
 	@PutMapping(value = "", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
+	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader,
+			@RequestBody UserRequest userRequest) {
 		logger.info("Call user update API...");
 		String message;
 		String activityType = "Authentication-UpdateUser";
@@ -369,7 +374,7 @@ public class UserController {
 			userID = jwtService.retrieveUserID(tokenFromCookie);
 			User user = userService.findByUserId(userID);
 			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
-			
+
 			String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
 			refreshTokenService.updateRefreshToken(refreshToken, true);
 
@@ -456,10 +461,10 @@ public class UserController {
 		}
 
 	}
-	
+
 	@PostMapping("/accessToken")
-	public ResponseEntity<APIResponse<JWTDTO>> generateAccessToken( @RequestBody UserRequest userRequest) {
-		
+	public ResponseEntity<APIResponse<JWTDTO>> generateAccessToken(@RequestBody UserRequest userRequest) {
+
 		String message = "";
 		String activityType = "Authentication-AccessToken";
 		String apiEndPoint = "/api/users/accessToken";
@@ -468,40 +473,39 @@ public class UserController {
 
 		try {
 			String userEmail = userRequest.getEmail();
-			
-			
-			if(GeneralUtility.makeNotNull(userEmail).equals("")) {
-				message ="Invalid user.";
-				logger.info("Requesting access Token: " + message);
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
-						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
-			
+
+			if (GeneralUtility.makeNotNull(userEmail).equals("")) {
+				message = "Invalid user.";
+				logger.info("Requesting access Token: {}", message);
+
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST,
+						auditLogUserId, auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
+
 			}
-			
-			//find user
+
+			// find user
 			UserDTO user = userService.checkSpecificActiveUserByEmail(userEmail);
-			if( user == null) {
-				message ="Invalid user.";
-				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
-						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
-			
+			if (user == null) {
+				message = "Invalid user.";
+				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST,
+						auditLogUserId, auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
+
 			}
 			auditLogUserId = user.getUserID();
-			auditLogUserName =user.getUsername();
-			
+			auditLogUserName = user.getUsername();
+
 			String accessToken = jwtService.generateToken(user.getUsername(), userEmail, user.getUserID(), false);
 
-			if (accessToken!=null) {
-				             
+			if (accessToken != null) {
+
 				HttpStatus httpStatus = HttpStatus.OK;
 				message = "Access token generated successfully.";
-				JWTDTO jwt= new JWTDTO();
+				JWTDTO jwt = new JWTDTO();
 				jwt.setToken(accessToken);
-				 
+
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
 						auditLogUserName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 				return ResponseEntity.status(httpStatus).body(APIResponse.success(jwt, message));
-
 
 			} else {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
@@ -549,8 +553,7 @@ public class UserController {
 
 	@PutMapping(value = "/roles", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(
-			@RequestHeader("Authorization") String authorizationHeader,
-			@RequestBody UserRequest roleReq) {
+			@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest roleReq) {
 		logger.info("Call user updateUserRole API...");
 		String message;
 		String activityType = "Authentication-UpdateUserRole";
@@ -560,25 +563,26 @@ public class UserController {
 
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			
+
 			// Validate User ID
 			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq.getUserId());
 			if (!validationResult.isValid()) {
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
-		
+
 			}
 
 			RoleType role = roleReq.getRole();
-			if (role.equals(null) || role.equals("")) {
+			if (role == null) {
+
 				message = "User Role is invalid.";
-				logger.info("updateUserRole: " + message);
+				logger.info("updateUserRole: {}", message);
+
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
 				validationResult.setStatus(httpStatus);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
-
 
 			UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
 			message = "Role is updated successfully.";
@@ -595,31 +599,31 @@ public class UserController {
 	}
 
 	@GetMapping("/google/userinfo")
-	public ResponseEntity<APIResponse<UserDTO>> getGoogleUserInfo(@RequestHeader("Authorization") String authorizationHeader) {
+	public ResponseEntity<APIResponse<UserDTO>> getGoogleUserInfo(
+			@RequestHeader("Authorization") String authorizationHeader) {
 
 		logger.info("Call user Get Googel User Info API...");
 		String message;
 		String activityType = "Authentication-GetGoogelUserInfo";
-		String apiEndPoint = String.format("/google/userinfo");
+		String apiEndPoint = "/google/userinfo";
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Get google User-Info failed";
 
 		try {
-			
-			    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-			       
-			        return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(null, activityType,
-							activityDesc, "Authorization header is invalid", apiEndPoint, httpMethod, HttpStatus.UNAUTHORIZED, auditLogUserId,
-							auditLogUserName);
-			    }
 
-			    String token = authorizationHeader.substring(7);
-			
-			
+			if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(null, activityType, activityDesc,
+						"Authorization header is invalid", apiEndPoint, httpMethod, HttpStatus.UNAUTHORIZED,
+						auditLogUserId, auditLogUserName);
+			}
+
+			String token = authorizationHeader.substring(7);
+
 			UserDTO userDTO = googleAuthService.verifyAndGetUserInfo(token);
-			if (userDTO != null && userDTO.getEmail() !=null) {
+			if (userDTO != null && userDTO.getEmail() != null) {
 				message = "Successfully get Google user info.";
-				
+
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 						apiEndPoint, httpMethod, userDTO.getUserID(), userDTO.getUsername());
 			} else {
@@ -630,7 +634,7 @@ public class UserController {
 
 			}
 		} catch (Exception e) {
-			
+
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
