@@ -321,11 +321,12 @@ public class UserService implements IUserService  {
 			return updateUserDTO;
 
 		} catch (Exception e) {
-			logger.error("Error occurred while user update role, " + e.toString());
-			e.printStackTrace();
-			throw e;
-
+		     
+		    logger.error("Error occurred while updating user role. Error message: {}", e.getMessage(), e);
+		    
+		    throw new RuntimeException("Failed to update user role. Please check the logs for details.", e);
 		}
+
 	}
 
 	@Override
@@ -340,10 +341,12 @@ public class UserService implements IUserService  {
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
-			logger.error("Error occurred while checking specific active User by Email, " + e.toString());
-			e.printStackTrace();
-			throw e;
+		   
+		    logger.error("Error occurred while checking specific active user by email: {}", e.getMessage(), e);		     
+		    throw e;
 		}
+		
+
 	}
 	
 	@Override
