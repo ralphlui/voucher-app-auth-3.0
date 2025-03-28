@@ -48,9 +48,10 @@ public class AWSConfig {
 	@Bean
 	public AmazonSimpleEmailService sesClient() {
 		AWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
-		AmazonSimpleEmailService sesClient = AmazonSimpleEmailServiceClientBuilder.standard()
-				.withCredentials(new AWSStaticCredentialsProvider(awsCredentials)).withRegion(awsRegion).build();
-		return sesClient;
+		return AmazonSimpleEmailServiceClientBuilder.standard()
+			    .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+			    .withRegion(awsRegion)
+			    .build();
 	}
 	
 	@Bean
