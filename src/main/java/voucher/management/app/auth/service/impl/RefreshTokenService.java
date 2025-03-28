@@ -52,7 +52,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 			refreshTokenRepsitory.save(refreshToken);
 			
 		} catch (Exception e) {
-			logger.error("Error occurred while saving refresh token, " + e.toString());
+			logger.error("Error occurred while saving refresh token", e);
 			e.printStackTrace();
 			throw e;
 
@@ -66,7 +66,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 			 refreshTokenRepsitory.updateRefreshToken(revoked, LocalDateTime.now(), hashedToken);
 
 		} catch (Exception e) {
-			logger.error("Error occurred while updating refresh token, " + e.toString());
+			logger.error("Error occurred while updating refresh token ", e);
 			e.printStackTrace();
 			throw e;
 
@@ -84,7 +84,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 			return jwtService.validateToken(refreshToken, userDetails);
 			
 		} catch (Exception e) {
-			logger.error("Error occurred while verifying refresh token, " + e.toString());
+			logger.error("Error occurred while verifying refresh token ", e);
 			e.printStackTrace();
 			throw e;
 		}
