@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -18,12 +17,15 @@ import jakarta.servlet.http.Cookie;
 @Component
 public class CookieUtils {
 	
+	 
+	private final JWTService jwtService;
+	 
+	private final RefreshTokenService refreshTokenService;
 	
-	@Autowired
-	private JWTService jwtService;
-	
-	@Autowired
-	private RefreshTokenService refreshTokenService;
+	public CookieUtils(JWTService jwtService, RefreshTokenService refreshTokenService) {
+		this.jwtService = jwtService;
+		this.refreshTokenService = refreshTokenService;
+	}
 	
 
 	public ResponseCookie createCookie(String name, String value, boolean httpOnly, long duration) {
