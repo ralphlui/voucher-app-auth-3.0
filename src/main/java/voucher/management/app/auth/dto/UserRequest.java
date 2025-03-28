@@ -38,15 +38,6 @@ public class UserRequest {
 		this.active = active;
 	}
 	
-	public UserRequest(String userId, String email, String password, String username, RoleType role, Boolean active) {
-		super();
-		
-		this.password = password;
-		this.username = username;
-		this.role = role;
-		this.active = active;
-	}
-
 	public String getEmail() {
 		return email;
 	}
