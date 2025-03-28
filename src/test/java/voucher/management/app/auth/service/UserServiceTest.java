@@ -201,8 +201,10 @@ public class UserServiceTest {
 
 		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
 
+		
 		UserDTO activeUser = userService.checkSpecificActiveUserByEmail(user.getEmail());
-		assertThat(activeUser.getEmail().equals(user.getEmail())).isTrue();
+		assertThat(activeUser.getEmail()).isEqualTo(user.getEmail());
+
 
 	}
 
