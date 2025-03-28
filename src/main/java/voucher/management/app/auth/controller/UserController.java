@@ -62,7 +62,9 @@ public class UserController {
 	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
 	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
 	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
-	
+	private static final String ACCESS_TOKEN_COOKIE = "access_token";
+	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
@@ -80,14 +82,14 @@ public class UserController {
 
 			Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
 			Map<Long, List<UserDTO>> resultMap = userService.findActiveUsers(pageable);
-			logger.info("all active user list size " + resultMap.size());
+			logger.info("all active user list size {}", resultMap.size());
 
 			Map.Entry<Long, List<UserDTO>> firstEntry = resultMap.entrySet().iterator().next();
 			long totalRecord = firstEntry.getKey();
 			List<UserDTO> userDTOList = firstEntry.getValue();
 
-			logger.info("totalRecord: " + totalRecord);
-			logger.info("userDTO List: " + userDTOList);
+			logger.info("totalRecord: {}", totalRecord);
+			logger.info("userDTO List: {}", userDTOList);
 
 			if (!userDTOList.isEmpty()) {
 				message = "Successfully get all active verified user.";
@@ -229,7 +231,7 @@ public class UserController {
 
 		logger.info("Call user resetPassword API...");
 
-		logger.info("Reset Password : " + resetPwdReq.getEmail());
+		logger.info("Reset Password : {}", resetPwdReq.getEmail());
 
 		String activityType = "Authentication-ResetPassword";
 		String apiEndPoint = String.format("api/users/resetPassword");
@@ -345,10 +347,10 @@ public class UserController {
 		String activityDesc = "Logging out user is failed due to ";
 		String userID = AuditLogInvalidUser.InvalidUserID.toString();
 
-		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, "access_token").orElse(null);
+		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, ACCESS_TOKEN_COOKIE).orElse(null);
 
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", "", true, 0);
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, "", true, 0);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie(REFRESH_TOKEN_COOKIE, "", true, 0);
 		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
 
 		try {
@@ -356,7 +358,7 @@ public class UserController {
 			User user = userService.findByUserId(userID);
 			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
 			
-			String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
+			String refreshToken = cookieUtils.getTokenFromCookies(request, REFRESH_TOKEN_COOKIE).orElse(null);
 			refreshTokenService.updateRefreshToken(refreshToken, true);
 
 			if (user != null) {
@@ -391,7 +393,7 @@ public class UserController {
 	@PostMapping("/refreshToken")
 	public <T> ResponseEntity<APIResponse<T>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
-		String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
+		String refreshToken = cookieUtils.getTokenFromCookies(request, REFRESH_TOKEN_COOKIE).orElse(null);
 		String message = "";
 		String activityType = "Authentication-RefreshToken";
 		String apiEndPoint = "/api/users/refreshToken";
@@ -643,7 +645,7 @@ public class UserController {
 		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true)
 				: refreshToken;
 
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, newAccessToken, false, 1);
 		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
 
 		// Add cookie to headers
