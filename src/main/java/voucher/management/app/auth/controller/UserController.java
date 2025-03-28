@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +21,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
@@ -39,6 +39,7 @@ import voucher.management.app.auth.utility.GeneralUtility;
 import org.springframework.data.domain.Sort;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
 
@@ -47,29 +48,14 @@ public class UserController {
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
-	@Autowired
-	private UserService userService;
-
-	@Autowired
-	private UserValidationStrategy userValidationStrategy;
-
-	@Autowired
-	private AuditLogService auditLogService;
-
-	@Autowired
-	private JWTService jwtService;
-
-	@Autowired
-	private CookieUtils cookieUtils;
-
-	@Autowired
-	private RefreshTokenService refreshTokenService;
-
-	@Autowired
-	private APIResponseStrategy apiResponseStrategy;
-
-	@Autowired
-	private GoogleAuthService googleAuthService;
+	private final UserService userService;
+	private final UserValidationStrategy userValidationStrategy;
+	private final AuditLogService auditLogService;
+	private final JWTService jwtService;
+	private final CookieUtils cookieUtils;
+	private final RefreshTokenService refreshTokenService;
+	private final APIResponseStrategy apiResponseStrategy;
+	private final GoogleAuthService googleAuthService;
 
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
