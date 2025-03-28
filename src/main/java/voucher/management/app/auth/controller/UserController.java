@@ -89,7 +89,7 @@ public class UserController {
 			logger.info("totalRecord: " + totalRecord);
 			logger.info("userDTO List: " + userDTOList);
 
-			if (userDTOList.size() > 0) {
+			if (!userDTOList.isEmpty()) {
 				message = "Successfully get all active verified user.";
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForSuccessCase(userDTOList, activityType,
 						message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName, totalRecord);
