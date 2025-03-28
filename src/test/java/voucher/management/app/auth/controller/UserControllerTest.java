@@ -309,7 +309,7 @@ public class UserControllerTest {
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 		mockMvc.perform(
-				MockMvcRequestBuilders.get("/api/users//active").header("Authorization", authorizationHeader)
+				MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
 						.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
