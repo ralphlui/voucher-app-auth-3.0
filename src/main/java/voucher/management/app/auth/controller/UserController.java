@@ -114,7 +114,7 @@ public class UserController {
 			} else {
 				message = "No Active User List.";
 				return apiResponseStrategy.handleEmptyResponseListAndsendAuditLogForSuccessCase(userDTOList,
-						activityType, message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName, totalRecord);
+						activityType, message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 			}
 
@@ -660,7 +660,7 @@ public class UserController {
 
 			if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
 
-				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(null, activityType, activityDesc,
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase( activityType, activityDesc,
 						"Authorization header is invalid", apiEndPoint, httpMethod, HttpStatus.UNAUTHORIZED,
 						auditLogUserId, auditLogUserName);
 			}
@@ -677,7 +677,7 @@ public class UserController {
 				 
 			} else {
 				message = "Failed to get Google user info.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType,
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase( activityType,
 						activityDesc, message, apiEndPoint, httpMethod, HttpStatus.BAD_REQUEST, auditLogUserId,
 						auditLogUserName);
 

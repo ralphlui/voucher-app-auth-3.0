@@ -91,7 +91,7 @@ public class OTPController {
 				
 			} else {
 				message = "OTP email sending failed.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType,
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase( activityType,
 						activityDesc, message, apiEndPoint, httpMethod, HttpStatus.INTERNAL_SERVER_ERROR,
 						userDTO.getUserID(), userDTO.getUsername());
 			}
@@ -142,7 +142,7 @@ public class OTPController {
 						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
 			} else {
 				message = "OTP expired or incorrect";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(userDTO, activityType,
+				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(activityType,
 						activityDesc, message, apiEndPoint, httpMethod, HttpStatus.BAD_REQUEST, userDTO.getUserID(),
 						userDTO.getUsername());
 			}

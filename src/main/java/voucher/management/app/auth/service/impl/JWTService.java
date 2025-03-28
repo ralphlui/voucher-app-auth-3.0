@@ -44,9 +44,9 @@ public class JWTService {
 		
 		long tokenValidDuration;
 	    
-	    // Check if pentest is enabled and adjust token validity accordingly
+	    // Check if pentest is enabled and adjust token validity to 30 minutes
 	    if (pentestEnable.equalsIgnoreCase("true")) {
-	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  // 30 minutes validity
+	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  
 	    } // 24 hours for refresh token // 15 minutes for normal token
 	    else {
 	        tokenValidDuration = System.currentTimeMillis() + (isRefreshToken ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000);

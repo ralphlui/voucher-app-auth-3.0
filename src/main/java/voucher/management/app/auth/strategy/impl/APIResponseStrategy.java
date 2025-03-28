@@ -23,10 +23,14 @@ import voucher.management.app.auth.strategy.IAPIResponseStrategy;
 @Service
 public class APIResponseStrategy implements IAPIResponseStrategy{
 	
-	private static final Logger logger = LoggerFactory.getLogger(AuditLogService.class);
+	private static final Logger logger = LoggerFactory.getLogger(APIResponseStrategy.class);
 
-	@Autowired
-	private AuditLogService auditLogService;
+	
+	private  final AuditLogService auditLogService;
+	
+	public APIResponseStrategy(AuditLogService auditLogService) {
+		this.auditLogService = auditLogService;
+	}
 	
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
@@ -57,6 +61,24 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
 	}*/
+	
+	
+	@Override
+	public ResponseEntity<APIResponse<UserDTO>> handleResponseAndSendAuditLogForSuccessCase(UserDTO userDTO,
+			String message, AuditLogRequest auditLogRequest) {
+		String activityType = auditLogRequest.getActivityType();
+	    String apiEndPoint = auditLogRequest.getRequestActionEndpoint();
+	    String httpMethod = auditLogRequest.getRequestType();
+	    String userId = userDTO.getUserID();
+	    String userName = userDTO.getUsername();
+
+	    logger.info(message);
+		HttpStatus httpStatus = HttpStatus.OK;
+		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId,
+				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
+	}
+    
 
 	@Override
 	public <T> ResponseEntity<APIResponse<T>> handleResponseAndsendAuditLogForExceptionCase(Exception e,
@@ -87,7 +109,8 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 				APIResponse.success(userDTOList, message, totalRecord));
 	}
 	
-    public ResponseEntity<APIResponse<List<UserDTO>>> handleEmptyResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName, long totalRecord) {
+    public ResponseEntity<APIResponse<List<UserDTO>>> handleEmptyResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType,
+    		String message, String apiEndPoint, String httpMethod, String userId, String userName) {
 		logger.info(message);
 		HttpStatus httpStatus = HttpStatus.OK;
 		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
@@ -110,7 +133,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 		return ResponseEntity.status(httpStatus).body(APIResponse.error(message));
 	}  
     
-    public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForFailedCase(UserDTO userDTO,
+    public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForFailedCase(
 			String activityType,String activityDesc, String message, String apiEndPoint, String httpMethod, HttpStatusCode httpStatus, String userID, String userName) {
 		 auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userID,
 				 userName, activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod,
@@ -118,21 +141,6 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 			return ResponseEntity.status(httpStatus).body(APIResponse.error(message));
 	}
 
-	@Override
-	public ResponseEntity<APIResponse<UserDTO>> handleResponseAndSendAuditLogForSuccessCase(UserDTO userDTO,
-			String message, AuditLogRequest auditLogRequest) {
-		String activityType = auditLogRequest.getActivityType();
-	    String apiEndPoint = auditLogRequest.getRequestActionEndpoint();
-	    String httpMethod = auditLogRequest.getRequestType();
-	    String userId = userDTO.getUserID();
-	    String userName = userDTO.getUsername();
-
-	    logger.info(message);
-		HttpStatus httpStatus = HttpStatus.OK;
-		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId,
-				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
-	}
-    
+	
 
 }
