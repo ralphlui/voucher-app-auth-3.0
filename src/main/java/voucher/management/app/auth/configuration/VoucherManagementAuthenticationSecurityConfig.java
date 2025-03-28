@@ -2,7 +2,6 @@ package voucher.management.app.auth.configuration;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,8 +46,10 @@ public class VoucherManagementAuthenticationSecurityConfig {
 		return new BCryptPasswordEncoder();
 	}
 	
-	@Autowired 
-	private JwtFilter jwtFilter;
+	@Bean
+	public JwtFilter jwtFilter() {
+	    return new JwtFilter();
+	}
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -71,7 +72,7 @@ public class VoucherManagementAuthenticationSecurityConfig {
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class)
 	            .build();
 	}
 	

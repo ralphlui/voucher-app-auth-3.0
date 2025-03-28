@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import org.springframework.data.domain.Page;
 
 import voucher.management.app.auth.configuration.AWSConfig;
-import voucher.management.app.auth.configuration.VoucherManagementAuthenticationSecurityConfig;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -51,8 +51,8 @@ public class UserService implements IUserService  {
 	@Autowired
 	private AWSConfig awsConfig;
 	
-	@Autowired
-	private VoucherManagementAuthenticationSecurityConfig securityConfig;
+	@Value("${frontend.url}")
+	private String frontEndUrl;
 	
 
 	@Override
@@ -232,7 +232,7 @@ public class UserService implements IUserService  {
 
 			AmazonSimpleEmailService client = awsConfig.sesClient();
 			String from = awsConfig.getEmailFrom().trim();
-			String clientURL = securityConfig.getFrontEndUrl().trim();
+			String clientURL = frontEndUrl;
 
 			String to = user.getEmail();
 
