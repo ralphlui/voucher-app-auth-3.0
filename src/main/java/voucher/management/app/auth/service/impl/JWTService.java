@@ -87,7 +87,7 @@ public class JWTService {
 		return Jwts.parser().verifyWith(loadPublicKey()).build().parseSignedClaims(token).getPayload();
 	}
 
-	public Boolean validateToken(String token, UserDetails userDetails)
+	public boolean validateToken(String token, UserDetails userDetails)
 			throws JwtException, IllegalArgumentException, Exception {
 		Claims claims = extractAllClaims(token);
 		String userEmail = claims.get("userEmail", String.class);
