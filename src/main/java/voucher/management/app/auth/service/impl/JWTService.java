@@ -118,7 +118,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().getSubject();
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserID.toString();
+			return AuditLogInvalidUser.INVALID_USER_ID.toString();
 		}
 	}
 	
@@ -130,7 +130,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().get("userName", String.class);
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserName.toString();
+			return AuditLogInvalidUser.INVALID_USER_NAME.toString();
 		}
 	}
 

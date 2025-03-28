@@ -51,8 +51,8 @@ public class JwtFilter extends OncePerRequestFilter {
 		String authHeader = request.getHeader("Authorization");
 	    apiEndpoint = request.getRequestURI();
 	    httpMethod = request.getMethod();
-	    userID = AuditLogInvalidUser.InvalidUserID.toString();
-	    userName = AuditLogInvalidUser.InvalidUserName.toString();
+	    userID = AuditLogInvalidUser.INVALID_USER_ID.toString();
+	    userName = AuditLogInvalidUser.INVALID_USER_NAME.toString();
 	    String requestURI = request.getRequestURI(); 
 
 		if (requestURI.contains("google/userinfo") || requestURI.contains("/api/users/login") || authHeader == null || !authHeader.startsWith("Bearer ")) {

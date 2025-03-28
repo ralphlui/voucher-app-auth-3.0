@@ -59,8 +59,8 @@ public class UserController {
 
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
-	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
-	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
+	private String auditLogUserId = AuditLogInvalidUser.INVALID_USER_ID.toString();
+	private String auditLogUserName = AuditLogInvalidUser.INVALID_USER_NAME.toString();
 	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
 	private static final String ACCESS_TOKEN_COOKIE = "access_token";
 	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
@@ -345,7 +345,7 @@ public class UserController {
 		String apiEndPoint = "/api/users/logout";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Logging out user is failed due to ";
-		String userID = AuditLogInvalidUser.InvalidUserID.toString();
+		String userID = AuditLogInvalidUser.INVALID_USER_ID.toString();
 
 		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, ACCESS_TOKEN_COOKIE).orElse(null);
 
