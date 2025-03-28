@@ -157,7 +157,7 @@ public class UserController {
 
 			if (!validationResult.isValid()) {
 
-				logger.error("Login Validation Error: " + validationResult.getMessage());
+				logger.error("Login Validation Error: {}", validationResult.getMessage());
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(),
 						validationResult.getUserName());
@@ -431,7 +431,7 @@ public class UserController {
 			} else {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Invalid or expired refresh token";
-				logger.info("Requesting refresh Token: {} " + message);
+				logger.info("Requesting refresh Token: {} ", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			}
@@ -460,7 +460,7 @@ public class UserController {
 			
 			if(GeneralUtility.makeNotNull(userEmail).equals("")) {
 				message ="Invalid user.";
-				logger.info("Requesting access Token: {}" + message);
+				logger.info("Requesting access Token: {}", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			
@@ -494,7 +494,7 @@ public class UserController {
 			} else {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Failed to generate token.";
-				logger.info("Requesting access Token: {}" + message);
+				logger.info("Requesting access Token: {}", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			}
@@ -560,7 +560,7 @@ public class UserController {
 			RoleType role = roleReq.getRole();
 			if (role.equals(null) || role.equals("")) {
 				message = "User Role is invalid.";
-				logger.info("updateUserRole: {} " + message);
+				logger.info("updateUserRole: {}", message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
 				validationResult.setStatus(httpStatus);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,

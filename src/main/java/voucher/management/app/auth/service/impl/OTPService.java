@@ -83,7 +83,7 @@ public class OTPService {
 
 			isSent = AmazonSES.sendEmail(client, from, Arrays.asList(email), subject, body);
 		} catch (Exception e) {
-			logger.error("Error occurred while sending otp, " + e.toString());
+			logger.error("Error occurred while sending OTP", e);
 			e.printStackTrace();
 		}
 		return isSent;
