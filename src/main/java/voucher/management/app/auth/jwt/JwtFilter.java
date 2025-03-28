@@ -5,15 +5,12 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
 import voucher.management.app.auth.service.impl.AuditLogService;
 import voucher.management.app.auth.service.impl.JWTService;
-import voucher.management.app.auth.service.impl.UserService;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,20 +21,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
-	@Autowired
-	private JWTService jwtService;
-
-	@Autowired
-	ApplicationContext context;
-	
-	@Autowired
-	private AuditLogService auditLogService;
-	
-	@Autowired
-	@Lazy
-	private UserService userService;
+	private final JWTService jwtService;
+    private final AuditLogService auditLogService;
 	
 	private String userID;
 	private String userName;
