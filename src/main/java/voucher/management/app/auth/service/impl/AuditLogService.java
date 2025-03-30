@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -14,21 +13,20 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.service.IAuditService;
 
 @Service
+@RequiredArgsConstructor
 public class AuditLogService implements IAuditService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(AuditLogService.class);
 	
 	
-	@Autowired
-	private AWSConfig awsConfig;
-	
-	@Autowired
-	private AmazonSQS amazonSQS;
+	private final AWSConfig awsConfig;
+	private final AmazonSQS amazonSQS;
 
 
 	@Async
