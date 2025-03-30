@@ -121,8 +121,7 @@ public class AuditLogService implements IAuditService {
 	            return remarks; 
 	        }
 
-	        String truncatedRemarks = new String(remarkBytes, 0, allowedBytesForRemarks, StandardCharsets.UTF_8);
-	        return truncatedRemarks;
+	        return  new String(remarkBytes, 0, allowedBytesForRemarks, StandardCharsets.UTF_8);
 	    } catch (Exception e) {
 	        logger.error("Error while truncating message remarks: ", e);
 	        return remarks; 
