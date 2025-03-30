@@ -74,7 +74,6 @@ public class JWTService {
 	}
 
 	public String extractUserID(String token) throws JwtException, IllegalArgumentException, Exception {
-		// TODO Auto-generated method stub
 		return extractClaim(token, Claims::getSubject);
 	}
 
