@@ -1,6 +1,5 @@
 package voucher.management.app.auth.strategy.impl;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -9,14 +8,22 @@ import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
+import voucher.management.app.auth.service.impl.PasswordValidatorService;
 import voucher.management.app.auth.service.impl.UserService;
 import voucher.management.app.auth.strategy.IAPIHelperValidationStrategy;
 
 @Service
 public class UserValidationStrategy implements IAPIHelperValidationStrategy<UserRequest> {
 
-	@Autowired
-	private UserService userService;
+	private final UserService userService;
+
+	private final PasswordValidatorService passwordValidatorService;
+
+	public UserValidationStrategy(UserService userService, PasswordValidatorService passwordValidatorService) {
+		this.userService = userService;
+		this.passwordValidatorService = passwordValidatorService;
+
+	}
 
 	private String auditLogInvalidUserId = AuditLogInvalidUser.InvalidUserID.toString();
 	private String auditLogInvalidUserName = AuditLogInvalidUser.InvalidUserName.toString();
@@ -44,6 +51,16 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 			validationResult.setValid(false);
 			validationResult.setUserId(dbUser.getUserId());
 			validationResult.setUserName(dbUser.getUsername());
+			return validationResult;
+		}
+		String msgPassword = passwordValidatorService.validatePassword(userRequest.getPassword());
+
+		if (!msgPassword.equalsIgnoreCase("Valid")) {
+			validationResult.setMessage(msgPassword);
+			validationResult.setStatus(HttpStatus.BAD_REQUEST);
+			validationResult.setValid(false);
+			validationResult.setUserId(userRequest.getUserId());
+			validationResult.setUserName(userRequest.getUsername());
 			return validationResult;
 		}
 
@@ -161,13 +178,12 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 		return validationResult;
 	}
 
+	public ValidationResult validateObjectByUseId(String id) {
 
-    public ValidationResult validateObjectByUseId(String id) {
-		
 		ValidationResult validationResult = validateObjectByUserId(id);
 		auditLogInvalidUserId = validationResult.getUserId();
 		auditLogInvalidUserName = validationResult.getUserName();
 		return validationResult;
 	}
-	
+
 }
