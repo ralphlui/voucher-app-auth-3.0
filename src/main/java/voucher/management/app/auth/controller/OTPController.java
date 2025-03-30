@@ -39,8 +39,8 @@ public class OTPController {
 	@Autowired
 	private APIResponseStrategy apiResponseStrategy;
 	
-	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
-	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
+	private String auditLogUserId = AuditLogInvalidUser.INVALID_USER_ID.toString();
+	private String auditLogUserName = AuditLogInvalidUser.INVALID_USER_NAME.toString();
 
 	@PostMapping(value = "/generate", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> generateOtp(

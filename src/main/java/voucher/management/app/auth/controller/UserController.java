@@ -5,9 +5,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
@@ -23,6 +21,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
@@ -40,6 +39,7 @@ import voucher.management.app.auth.utility.GeneralUtility;
 import org.springframework.data.domain.Sort;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
 
@@ -48,36 +48,23 @@ public class UserController {
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
-	@Autowired
-	private UserService userService;
-
-	@Autowired
-	private UserValidationStrategy userValidationStrategy;
-
-	@Autowired
-	private AuditLogService auditLogService;
-
-	@Autowired
-	private JWTService jwtService;
-
-	@Autowired
-	private CookieUtils cookieUtils;
-
-	@Autowired
-	private RefreshTokenService refreshTokenService;
-
-	@Autowired
-	private APIResponseStrategy apiResponseStrategy;
-
-	@Autowired
-	private GoogleAuthService googleAuthService;
+	private final UserService userService;
+	private final UserValidationStrategy userValidationStrategy;
+	private final AuditLogService auditLogService;
+	private final JWTService jwtService;
+	private final CookieUtils cookieUtils;
+	private final RefreshTokenService refreshTokenService;
+	private final APIResponseStrategy apiResponseStrategy;
+	private final GoogleAuthService googleAuthService;
 
 	private String auditLogResponseSuccess = AuditLogResponseStatus.SUCCESS.toString();
 	private String auditLogResponseFailure = AuditLogResponseStatus.FAILED.toString();
-	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
-	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
+	private String auditLogUserId = AuditLogInvalidUser.INVALID_USER_ID.toString();
+	private String auditLogUserName = AuditLogInvalidUser.INVALID_USER_NAME.toString();
 	private String genericErrorMessage = "An error occurred while processing your request. Please try again later.";
-	
+	private static final String ACCESS_TOKEN_COOKIE = "access_token";
+	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
@@ -95,16 +82,16 @@ public class UserController {
 
 			Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
 			Map<Long, List<UserDTO>> resultMap = userService.findActiveUsers(pageable);
-			logger.info("all active user list size " + resultMap.size());
+			logger.info("all active user list size {}", resultMap.size());
 
 			Map.Entry<Long, List<UserDTO>> firstEntry = resultMap.entrySet().iterator().next();
 			long totalRecord = firstEntry.getKey();
 			List<UserDTO> userDTOList = firstEntry.getValue();
 
-			logger.info("totalRecord: " + totalRecord);
-			logger.info("userDTO List: " + userDTOList);
+			logger.info("totalRecord: {}", totalRecord);
+			logger.info("userDTO List: {}", userDTOList);
 
-			if (userDTOList.size() > 0) {
+			if (!userDTOList.isEmpty()) {
 				message = "Successfully get all active verified user.";
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForSuccessCase(userDTOList, activityType,
 						message, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName, totalRecord);
@@ -170,7 +157,7 @@ public class UserController {
 
 			if (!validationResult.isValid()) {
 
-				logger.error("Login Validation Error: " + validationResult.getMessage());
+				logger.error("Login Validation Error: {}", validationResult.getMessage());
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, validationResult.getUserId(),
 						validationResult.getUserName());
@@ -197,14 +184,15 @@ public class UserController {
 		}
 	}
 
-	@PatchMapping(value = "/verify/{verifyid}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@PathVariable("verifyid") String verifyid) {
+	@PatchMapping(value = "/verify", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> verifyUser(@RequestBody UserRequest userRequest) {
 
-		logger.info("Call user verify API with verifyToken={}", verifyid);
+		String verifyid = userRequest.getAccountVerificationCode();
+		logger.info("Call user verify API with verifyToken");
 		verifyid = GeneralUtility.makeNotNull(verifyid);
 		String message = "";
 		String activityType = "Authentication-VerifyUser";
-		String apiEndPoint = String.format("api/users/verify/%s", verifyid);
+		String apiEndPoint = String.format("api/users/verify");
 		String httpMethod = HttpMethod.PATCH.name();
 		String activityDesc = "User verification is failed due to ";
 
@@ -237,29 +225,30 @@ public class UserController {
 
 	}
 
-	@PatchMapping(value = "/{id}/resetPassword", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> resetPassword(@PathVariable("id") String id,
+	@PatchMapping(value = "/resetPassword", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> resetPassword(
 			@RequestBody UserRequest resetPwdReq) {
 
 		logger.info("Call user resetPassword API...");
 
-		logger.info("Reset Password : " + resetPwdReq.getEmail());
+		logger.info("Reset Password : {}", resetPwdReq.getEmail());
 
 		String activityType = "Authentication-ResetPassword";
-		String apiEndPoint = String.format("api/users/%s/resetPassword", id);
+		String apiEndPoint = String.format("api/users/resetPassword");
 		String httpMethod = HttpMethod.PATCH.name();
 		String activityDesc = "Reset password is failed due to ";
 
 		String message = "";
 		try {
-			getUserByUserID(id);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(resetPwdReq.getUserId());
 			if (!validationResult.isValid()) {
 				logger.error("Reset passwrod validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
+			String id = resetPwdReq.getUserId();
+			getUserByUserID(id);
 			UserDTO userDTO = userService.resetPassword(id, resetPwdReq.getPassword());
 			message = "Reset Password is completed.";
 			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
@@ -274,23 +263,23 @@ public class UserController {
 
 	}
 
-	@PutMapping(value = "/{id}", produces = "application/json")
-	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader,
-			@PathVariable("id") String id, @RequestBody UserRequest userRequest) {
+	@PutMapping(value = "", produces = "application/json")
+	public ResponseEntity<APIResponse<UserDTO>> updateUser(@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
 		logger.info("Call user update API...");
 		String message;
 		String activityType = "Authentication-UpdateUser";
-		String apiEndPoint = String.format("api/users/%s", id);
+		String apiEndPoint = String.format("api/users");
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User failed due to ";
+		String userID = userRequest.getUserId();
 
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateUpdating(id);
+			ValidationResult validationResult = userValidationStrategy.validateUpdating(userID);
 
 			if (validationResult.isValid()) {
 
-				userRequest.setUserId(id);
+				userRequest.setUserId(userID);
 				UserDTO userDTO = userService.update(userRequest);
 				message = "User updated successfully.";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
@@ -311,20 +300,19 @@ public class UserController {
 		}
 	}
 
-	@GetMapping(value = "/{id}/active", produces = "application/json")
+	@PostMapping(value = "/active", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> checkSpecificActiveUser(
-			@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id) {
+			@RequestHeader("Authorization") String authorizationHeader, @RequestBody UserRequest userRequest) {
 		logger.info("Call user active API...");
-		logger.info("User ID" + id);
 		String message = "";
 		String activityType = "Authentication-RetrieveActiveUserByUserId";
-		String apiEndPoint = String.format("api/users/%s/active", id);
+		String apiEndPoint = String.format("api/users/active");
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Retrieving active user by id failed due to ";
 
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userRequest.getUserId());
 
 			if (!validationResult.isValid()) {
 
@@ -357,12 +345,12 @@ public class UserController {
 		String apiEndPoint = "/api/users/logout";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Logging out user is failed due to ";
-		String userID = AuditLogInvalidUser.InvalidUserID.toString();
+		String userID = AuditLogInvalidUser.INVALID_USER_ID.toString();
 
-		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, "access_token").orElse(null);
+		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, ACCESS_TOKEN_COOKIE).orElse(null);
 
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", "", true, 0);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", "", true, 0);
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, "", true, 0);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie(REFRESH_TOKEN_COOKIE, "", true, 0);
 		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
 
 		try {
@@ -370,7 +358,7 @@ public class UserController {
 			User user = userService.findByUserId(userID);
 			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
 			
-			String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
+			String refreshToken = cookieUtils.getTokenFromCookies(request, REFRESH_TOKEN_COOKIE).orElse(null);
 			refreshTokenService.updateRefreshToken(refreshToken, true);
 
 			if (user != null) {
@@ -405,7 +393,7 @@ public class UserController {
 	@PostMapping("/refreshToken")
 	public <T> ResponseEntity<APIResponse<T>> refreshToken(HttpServletRequest request, HttpServletResponse response) {
 		// Extract refresh token from cookies
-		String refreshToken = cookieUtils.getTokenFromCookies(request, "refresh_token").orElse(null);
+		String refreshToken = cookieUtils.getTokenFromCookies(request, REFRESH_TOKEN_COOKIE).orElse(null);
 		String message = "";
 		String activityType = "Authentication-RefreshToken";
 		String apiEndPoint = "/api/users/refreshToken";
@@ -415,7 +403,7 @@ public class UserController {
 		try {
 			if (refreshToken == null) {
 				message = "Refresh token is missing";
-				logger.info("Requesting new access Token: " + message);
+				logger.info("Requesting new access Token: {}", message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
@@ -443,7 +431,7 @@ public class UserController {
 			} else {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Invalid or expired refresh token";
-				logger.info("Requesting refresh Token: " + message);
+				logger.info("Requesting refresh Token: {} ", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			}
@@ -472,7 +460,7 @@ public class UserController {
 			
 			if(GeneralUtility.makeNotNull(userEmail).equals("")) {
 				message ="Invalid user.";
-				logger.info("Requesting access Token: " + message);
+				logger.info("Requesting access Token: {}", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(HttpStatus.BAD_REQUEST, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			
@@ -506,7 +494,7 @@ public class UserController {
 			} else {
 				HttpStatus httpStatus = HttpStatus.UNAUTHORIZED;
 				message = "Failed to generate token.";
-				logger.info("Requesting access Token: " + message);
+				logger.info("Requesting access Token: {}", message);
 				return apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(httpStatus, auditLogUserId,
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 			}
@@ -547,49 +535,43 @@ public class UserController {
 
 	}
 
-	@PutMapping(value = "/{id}/roles", produces = "application/json")
+	@PutMapping(value = "/roles", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> updateUserRole(
-			@RequestHeader("Authorization") String authorizationHeader, @PathVariable("id") String id,
+			@RequestHeader("Authorization") String authorizationHeader,
 			@RequestBody UserRequest roleReq) {
 		logger.info("Call user updateUserRole API...");
 		String message;
 		String activityType = "Authentication-UpdateUserRole";
-		String apiEndPoint = String.format("api/users/%s/roles", id);
+		String apiEndPoint = String.format("api/users/roles");
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User-Role failed due to ";
 
 		try {
-			RoleType role = roleReq.getRole();
 			retrieveUserIDAndNameFromToken(authorizationHeader);
+			
+			// Validate User ID
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq.getUserId());
+			if (!validationResult.isValid()) {
+				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
+						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
+		
+			}
 
+			RoleType role = roleReq.getRole();
 			if (role.equals(null) || role.equals("")) {
 				message = "User Role is invalid.";
-				logger.info("updateUserRole: " + message);
+				logger.info("updateUserRole: {}", message);
 				HttpStatus httpStatus = HttpStatus.BAD_REQUEST;
-				ValidationResult validationResult = new ValidationResult();
-				validationResult.setMessage(message);
 				validationResult.setStatus(httpStatus);
-				validationResult.setUserId(id);
-				validationResult.setUserName(id);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 			}
 
-			// Validate User ID
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(id);
 
-			if (validationResult.isValid()) {
-				// Get RoleType enum value
-				// Update User Role
-				UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
-				message = "Role is updated successfully.";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
-			} else {
-
-				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
-						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
-			}
+			UserDTO userDTO = userService.updateRoleByUser(validationResult.getUserId(), role);
+			message = "Role is updated successfully.";
+			return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+					apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);
 
 		} catch (Exception e) {
 			// Exception handling
@@ -663,7 +645,7 @@ public class UserController {
 		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true)
 				: refreshToken;
 
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie("access_token", newAccessToken, false, 1);
+		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, newAccessToken, false, 1);
 		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
 
 		// Add cookie to headers

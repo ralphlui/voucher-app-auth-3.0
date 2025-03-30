@@ -13,9 +13,5 @@ public class ValidationResult {
 	private HttpStatus status;
 	private String userId;
 	private String userName;
-
-	public ValidationResult() {
-
-	}
 }
 

@@ -87,7 +87,7 @@ public class JWTService {
 		return Jwts.parser().verifyWith(loadPublicKey()).build().parseSignedClaims(token).getPayload();
 	}
 
-	public Boolean validateToken(String token, UserDetails userDetails)
+	public boolean validateToken(String token, UserDetails userDetails)
 			throws JwtException, IllegalArgumentException, Exception {
 		Claims claims = extractAllClaims(token);
 		String userEmail = claims.get("userEmail", String.class);
@@ -118,7 +118,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().getSubject();
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserID.toString();
+			return AuditLogInvalidUser.INVALID_USER_ID.toString();
 		}
 	}
 	
@@ -130,7 +130,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().get("userName", String.class);
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserName.toString();
+			return AuditLogInvalidUser.INVALID_USER_NAME.toString();
 		}
 	}
 

@@ -96,7 +96,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
     public ResponseEntity<APIResponse<List<UserDTO>>> handleResponseListAndsendAuditLogForExceptionCase(Exception e, String activityType, String activityDesc, String apiEndPoint, String httpMethod, String userId, String userName) {
 		String message = e.getMessage();
 		String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
-		logger.error("Error: " + message);
+		logger.error("Error: {}", message);
 		activityDesc = activityDesc.concat(message);
 		auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.NOT_FOUND.value()), userId, userName, activityType, activityDesc, apiEndPoint, auditLogResponseSuccess, httpMethod, message);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

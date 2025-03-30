@@ -102,8 +102,7 @@ public class UserControllerTest {
 
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true,
-				new ArrayList<String>());
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
 		testUser = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
@@ -194,17 +193,21 @@ public class UserControllerTest {
 		testUser.setVerified(true);
 		testUser.setActive(true);
 		testUser.setVerificationCode(decodedVerificationCode);
+		userRequest.setAccountVerificationCode(verificationCode);
 
 		Mockito.when(userService.verifyUser(verificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify/{verifyid}", verificationCode))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.verified").value(true))
 				.andDo(print());
 
 		testUser.setVerificationCode("");
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/verify/{verifyid}", ""))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify", "")
+				.contentType(MediaType.APPLICATION_JSON))
 				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
@@ -240,7 +243,7 @@ public class UserControllerTest {
 		Mockito.when(userService.resetPassword(userRequest.getUserId(), userRequest.getPassword()))
 				.thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/{id}/resetPassword", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/resetPassword")
 				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -259,7 +262,7 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -270,12 +273,14 @@ public class UserControllerTest {
 
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<String>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}", errorUser.getUserId())
-				.contentType(MediaType.APPLICATION_JSON).header("X-User-Id", "")
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users")
+				.contentType(MediaType.APPLICATION_JSON)
+				.header("Authorization", authorizationHeader)
+				.content(objectMapper.writeValueAsString(userRequest))
 				.content(objectMapper.writeValueAsString(errorUserRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
@@ -292,7 +297,7 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/active", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/active")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -304,7 +309,7 @@ public class UserControllerTest {
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 		mockMvc.perform(
-				MockMvcRequestBuilders.get("/api/users/{id}/active", errorUser.getUserId()).header("X-User-Id", "")
+				MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
 						.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
@@ -380,11 +385,12 @@ public class UserControllerTest {
 
 		UserRequest userRequest = new UserRequest();
 		userRequest.setRole(RoleType.MERCHANT);
+		userRequest.setUserId(testUser.getUserId());
 
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -396,13 +402,13 @@ public class UserControllerTest {
 		// Error Case: Update with invalid user ID (e.g., empty X-User-Id)
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 
 		// Mock behavior for the error user
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", errorUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(errorUserRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))

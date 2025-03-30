@@ -16,7 +16,6 @@ public class UserDTO {
 	private boolean isActive;
 	private boolean isVerified;
 	private AuthProvider authProvider;
-    public UserDTO(){
-    }
+    
     
 }

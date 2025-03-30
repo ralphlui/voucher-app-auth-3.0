@@ -63,8 +63,7 @@ public class UserServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true,
-				new ArrayList<String>());
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true);
 		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
