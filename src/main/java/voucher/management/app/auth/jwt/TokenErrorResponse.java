@@ -9,6 +9,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TokenErrorResponse {
+	
+	private TokenErrorResponse() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
 	
     public static void sendErrorResponse(HttpServletResponse response, String message, int status, String error) throws IOException {

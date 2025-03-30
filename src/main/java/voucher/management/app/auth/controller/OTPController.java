@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.exception.UserNotFoundException;
@@ -18,6 +19,7 @@ import voucher.management.app.auth.utility.CookieUtils;
 import voucher.management.app.auth.utility.GeneralUtility;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/users/otp")
 public class OTPController {
 
@@ -33,18 +35,11 @@ public class OTPController {
 
 	private final APIResponseStrategy apiResponseStrategy;
 
-	public OTPController(OTPService otpService, UserValidationStrategy userValidationStrategy, UserService userService,
-			CookieUtils cookieUtils, APIResponseStrategy apiResponseStrategy) {
-		this.otpService = otpService;
-		this.userValidationStrategy = userValidationStrategy;
-		this.userService = userService;
-		this.cookieUtils = cookieUtils;
-		this.apiResponseStrategy = apiResponseStrategy;
-	}
 
-	private String auditLogUserId = AuditLogInvalidUser.InvalidUserID.toString();
-	private String auditLogUserName = AuditLogInvalidUser.InvalidUserName.toString();
+	private String auditLogUserId = AuditLogInvalidUser.INVALID_USER_ID.toString();
+	private String auditLogUserName = AuditLogInvalidUser.INVALID_USER_NAME.toString();
 
+	
 	@PostMapping(value = "/generate", produces = "application/json")
 	public ResponseEntity<APIResponse<UserDTO>> generateOtp(@RequestBody UserRequest userRequest) {
 

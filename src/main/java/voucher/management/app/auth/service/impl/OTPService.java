@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 
+import lombok.AllArgsConstructor;
 import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.utility.AmazonSES;
 import voucher.management.app.auth.utility.GeneralUtility;
@@ -15,6 +16,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Arrays;
 
+@AllArgsConstructor
 @Service
 public class OTPService {
 
@@ -31,10 +33,6 @@ public class OTPService {
 	
 	private final AWSConfig awsConfig;
  
-	public OTPService(StringRedisTemplate redisTemplate, AWSConfig awsConfig) {
-        this.redisTemplate = redisTemplate;
-        this.awsConfig = awsConfig;
-    }
 
 	public String generateOTP(String email) {
 		String otp = generateRandomOTP(); // Generate 6-digit OTP
@@ -87,7 +85,9 @@ public class OTPService {
 
 			isSent = AmazonSES.sendEmail(client, from, Arrays.asList(email), subject, body);
 		} catch (Exception e) {
+
 		    logger.error("Error occurred while sending OTP: {}", e.toString(), e);
+
 		}
 
 		return isSent;
