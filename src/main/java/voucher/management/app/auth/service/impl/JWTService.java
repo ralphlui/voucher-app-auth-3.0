@@ -110,7 +110,7 @@ public class JWTService {
 		return userDetails;
 	}
     
-	public String retrieveUserID(String token) throws JwtException, IllegalArgumentException, Exception {
+	public String extractUserIdAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
 		try {
 			return extractClaim(token, Claims::getSubject);
 		} catch (ExpiredJwtException e) {
@@ -120,7 +120,7 @@ public class JWTService {
 		}
 	}
 	
-	public String retrieveUserName(String token) throws JwtException, IllegalArgumentException, Exception {
+	public String extractUserNameAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
 		try {
 			Claims claims = extractAllClaims(token);
 			String userName = claims.get("userName", String.class);
