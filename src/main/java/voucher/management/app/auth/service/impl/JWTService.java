@@ -106,10 +106,9 @@ public class JWTService {
 	public UserDetails getUserDetail(String token) throws JwtException, IllegalArgumentException, Exception {
 		String userID = extractUserID(token);
 		User user = context.getBean(UserService.class).findActiveUserByID(userID);
-		UserDetails userDetails = org.springframework.security.core.userdetails.User
+		return org.springframework.security.core.userdetails.User
 				.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole().toString())
 				.build();
-		return userDetails;
 	}
     
 	public String extractUserIdAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
