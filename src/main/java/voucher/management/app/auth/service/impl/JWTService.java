@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.configuration.JWTConfig;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
@@ -25,17 +25,15 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
 public class JWTService {
 	
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
 
-	@Autowired
-	private JWTConfig jwtConfig;
-	
-	@Autowired
-	ApplicationContext context;
+	private final JWTConfig jwtConfig;
+	private final ApplicationContext context;
 
 	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
