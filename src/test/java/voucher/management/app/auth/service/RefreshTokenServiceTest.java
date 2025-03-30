@@ -111,6 +111,7 @@ public class RefreshTokenServiceTest {
 		RefreshToken savedRefreshToken = new RefreshToken();
 		savedRefreshToken.setToken(hashedToken);
 		savedRefreshToken.setRevoked(false);
+		savedRefreshToken.setExpiryDate(LocalDateTime.now().plusMinutes(2));
 		String refreshToken = "sample.jwt.token";
 		hashedToken = "hashedSampleToken";
 
