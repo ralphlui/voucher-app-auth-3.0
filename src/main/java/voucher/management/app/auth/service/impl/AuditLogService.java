@@ -44,11 +44,11 @@ public class AuditLogService implements IAuditService {
 		            .withMessageBody(auditLogRequest);
 
 		    SendMessageResult sendMessageResult = amazonSQS.sendMessage(sendMessageRequest);
-		    logger.info("Message response in SQS: " + sendMessageResult.getMessageId());
+		    logger.info("Message response in SQS: {}",sendMessageResult.getMessageId());
 		    
 		} catch (Exception e) {
 		    // Generic exception handling for any other unforeseen errors
-		    logger.error("Exception: Unexpected error occurred while sending audit logs to SQS " + e.toString());
+		    logger.error("Exception: Unexpected error occurred while sending audit logs to SQS ", e);
 		}
 	}
 	
@@ -72,7 +72,7 @@ public class AuditLogService implements IAuditService {
 		try {
 
 			String auditLogString = objectMapper.writeValueAsString(logRequest);
-			logger.info("Serialized JSON: " + auditLogString);
+			logger.info("Serialized JSON: {}", auditLogString);
 
 			byte[] messageBytes = auditLogString.getBytes(StandardCharsets.UTF_8);
 			int messageSize = messageBytes.length;
@@ -93,7 +93,7 @@ public class AuditLogService implements IAuditService {
 			return auditLogString;
 
 		} catch (Exception e) {
-			logger.error("Exception: Unexpected error occurred while creatin audit log object", e.toString());
+			logger.error("Exception: Unexpected error occurred while creatin audit log object", e);
 			e.printStackTrace();
 		}
 		return "";
@@ -124,7 +124,7 @@ public class AuditLogService implements IAuditService {
 	        String truncatedRemarks = new String(remarkBytes, 0, allowedBytesForRemarks, StandardCharsets.UTF_8);
 	        return truncatedRemarks;
 	    } catch (Exception e) {
-	        logger.error("Error while truncating message remarks: {}", e.getMessage());
+	        logger.error("Error while truncating message remarks: ", e);
 	        return remarks; 
 	    }
 	}
