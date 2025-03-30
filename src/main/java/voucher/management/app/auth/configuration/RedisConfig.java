@@ -9,7 +9,8 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
-    @Bean
+	
+	@Bean
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory redisConnectionFactory) {
         StringRedisTemplate template = new StringRedisTemplate(redisConnectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
@@ -17,5 +18,3 @@ public class RedisConfig {
         return template;
     }
 }
-
-

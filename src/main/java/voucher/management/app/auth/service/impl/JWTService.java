@@ -44,13 +44,14 @@ public class JWTService {
 		
 		long tokenValidDuration;
 	    
-	    // Check if pentest is enabled and adjust token validity accordingly
+	    // Check if pentest is enabled and adjust token validity to 30 minutes
 	    if (pentestEnable.equalsIgnoreCase("true")) {
-	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  // 30 minutes validity
-	    } else {
-	        tokenValidDuration = isRefreshToken ? System.currentTimeMillis() + 24 * 60 * 60 * 1000  // 24 hours for refresh token
-	                : System.currentTimeMillis() + 15 * 60 * 1000;  // 15 minutes for normal token
-	    }		
+	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  
+	    } // 24 hours for refresh token // 15 minutes for normal token
+	    else {
+	        tokenValidDuration = System.currentTimeMillis() + (isRefreshToken ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000);
+	    }
+
 		
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
@@ -87,7 +88,7 @@ public class JWTService {
 		return Jwts.parser().verifyWith(loadPublicKey()).build().parseSignedClaims(token).getPayload();
 	}
 
-	public Boolean validateToken(String token, UserDetails userDetails)
+	public boolean validateToken(String token, UserDetails userDetails)
 			throws JwtException, IllegalArgumentException, Exception {
 		Claims claims = extractAllClaims(token);
 		String userEmail = claims.get("userEmail", String.class);
@@ -118,7 +119,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().getSubject();
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserID.toString();
+			return AuditLogInvalidUser.INVALID_USER_ID.toString();
 		}
 	}
 	
@@ -130,7 +131,7 @@ public class JWTService {
 		} catch (ExpiredJwtException e) {
 			return e.getClaims().get("userName", String.class);
 		} catch (Exception e) {
-			return AuditLogInvalidUser.InvalidUserName.toString();
+			return AuditLogInvalidUser.INVALID_USER_NAME.toString();
 		}
 	}
 

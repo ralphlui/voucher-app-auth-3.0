@@ -60,8 +60,9 @@ public class AuditLogService implements IAuditService {
 			String remarks) {
 
 		ObjectMapper objectMapper = new ObjectMapper();
-		AuditLogRequest logRequest = new AuditLogRequest();
-		logRequest.setStatusCode(statusCode);
+		AuditLogRequest logRequest = new AuditLogRequest(statusCode, userId, username,
+				activityType, activityDescription, requestActionEndpoint, responseStatus, requestType, remarks);
+		/*logRequest.setStatusCode(statusCode);
 		logRequest.setUserId(userId);
 		logRequest.setUsername(username);
 		logRequest.setActivityType(activityType);
@@ -69,7 +70,7 @@ public class AuditLogService implements IAuditService {
 		logRequest.setRequestActionEndpoint(requestActionEndpoint);
 		logRequest.setResponseStatus(responseStatus);
 		logRequest.setRequestType(requestType);
-		logRequest.setRemarks(remarks);
+		logRequest.setRemarks(remarks);*/
 		try {
 
 			String auditLogString = objectMapper.writeValueAsString(logRequest);

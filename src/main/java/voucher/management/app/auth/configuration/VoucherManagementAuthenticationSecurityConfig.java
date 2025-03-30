@@ -2,7 +2,6 @@ package voucher.management.app.auth.configuration;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,12 +45,9 @@ public class VoucherManagementAuthenticationSecurityConfig {
 	public PasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
 	}
-	
-	@Autowired 
-	private JwtFilter jwtFilter;
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
 		return http.cors(cors -> {
 			cors.configurationSource(request -> {
 				CorsConfiguration config = new CorsConfiguration();
@@ -65,9 +61,9 @@ public class VoucherManagementAuthenticationSecurityConfig {
 				.addHeaderWriter(
 						new StaticHeadersWriter("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS"))
 				.addHeaderWriter(new StaticHeadersWriter("Access-Control-Allow-Headers", "*"))
-				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter((request, response) -> {
-					response.addHeader("Cache-Control", "max-age=60, must-revalidate");
-				})).csrf(AbstractHttpConfigurer::disable)
+				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter((request, response) -> 
+					response.addHeader("Cache-Control", "max-age=60, must-revalidate")
+				)).csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

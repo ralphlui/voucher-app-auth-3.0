@@ -2,12 +2,12 @@ package voucher.management.app.auth.service.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 
+import lombok.AllArgsConstructor;
 import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.utility.AmazonSES;
 import voucher.management.app.auth.utility.GeneralUtility;
@@ -16,12 +16,11 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Arrays;
 
+@AllArgsConstructor
 @Service
 public class OTPService {
 
-	@Autowired
-	private AWSConfig awsConfig;
-
+	 
 	private static final Logger logger = LoggerFactory.getLogger(OTPService.class);
 
 	private static final int OTP_LENGTH = 6;
@@ -29,8 +28,11 @@ public class OTPService {
 	private static final String DIGITS = "0123456789";
 	private static final SecureRandom RANDOM = new SecureRandom();
 
-	@Autowired
-	private StringRedisTemplate redisTemplate;
+	
+	private final StringRedisTemplate redisTemplate;
+	
+	private final AWSConfig awsConfig;
+ 
 
 	public String generateOTP(String email) {
 		String otp = generateRandomOTP(); // Generate 6-digit OTP
@@ -83,9 +85,11 @@ public class OTPService {
 
 			isSent = AmazonSES.sendEmail(client, from, Arrays.asList(email), subject, body);
 		} catch (Exception e) {
-			logger.error("Error occurred while sending otp, " + e.toString());
-			e.printStackTrace();
+
+		    logger.error("Error occurred while sending OTP: {}", e.toString(), e);
+
 		}
+
 		return isSent;
 	}
 }

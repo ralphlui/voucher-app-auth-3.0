@@ -1,11 +1,9 @@
 package voucher.management.app.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,8 +61,7 @@ public class UserServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true,
-				new ArrayList<String>());
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true);
 		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
@@ -76,7 +73,7 @@ public class UserServiceTest {
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		user = new User();
 		userRequest = new UserRequest();
 
@@ -102,7 +99,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void createUser() throws Exception {
+	void createUser() throws Exception  {
 
 		user.setEmail(userRequest.getEmail());
 		Mockito.when(userRepository.save(Mockito.any(User.class))).thenReturn(user);
@@ -114,7 +111,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	public void testValidateUserLogin_Successful() {
+	void testValidateUserLogin_Successful() {
 
 		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
 		Mockito.when(passwordEncoder.matches(user.getPassword(), user.getPassword())).thenReturn(true);
@@ -125,7 +122,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	public void verifyUser() throws Exception {
+	void verifyUser() throws Exception{
 		String decodedVerificationCode = "7f03a9a9-d7a5-4742-bc85-68d52b2bee45";
 		String verificationCode = encryptionUtils.encrypt(decodedVerificationCode);
 
@@ -140,7 +137,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void updateUser() throws Exception {
+	void updateUser(){
 
 		userRequest.setUsername("Admin");
 		Mockito.when(userService.findByUserId(user.getUserId())).thenReturn(user);
@@ -154,7 +151,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	public void testFindByEmailAndStatus() {
+	void testFindByEmailAndStatus() {
 
 		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
 
@@ -164,7 +161,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void resetPassword() throws Exception {
+	void resetPassword() {
 
 		Mockito.when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
 		Mockito.when(userRepository.save(user)).thenReturn(user);
@@ -175,7 +172,7 @@ public class UserServiceTest {
 	}
 
 	@Test
-	void checkSpecificActiveUser() throws Exception {
+	void checkSpecificActiveUser() {
 
 		Mockito.when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
 
@@ -186,7 +183,7 @@ public class UserServiceTest {
 
 
 	@Test
-	void updateUserRole() throws Exception {
+	void updateUserRole() {
 
 		Mockito.when(userRepository.findByUserId(user.getUserId())).thenReturn(user);
 		Mockito.when(userRepository.findById(user.getUserId())).thenReturn(Optional.of(user));
@@ -204,8 +201,10 @@ public class UserServiceTest {
 
 		Mockito.when(userRepository.findByEmailAndStatus(user.getEmail(), true, true)).thenReturn(user);
 
+		
 		UserDTO activeUser = userService.checkSpecificActiveUserByEmail(user.getEmail());
-		assertThat(activeUser.getEmail().equals(user.getEmail())).isTrue();
+		assertThat(activeUser.getEmail()).isEqualTo(user.getEmail());
+
 
 	}
 

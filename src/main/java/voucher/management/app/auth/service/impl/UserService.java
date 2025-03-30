@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,6 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import org.springframework.data.domain.Page;
 
 import voucher.management.app.auth.configuration.AWSConfig;
-import voucher.management.app.auth.configuration.VoucherManagementAuthenticationSecurityConfig;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -51,8 +51,8 @@ public class UserService implements IUserService  {
 	@Autowired
 	private AWSConfig awsConfig;
 	
-	@Autowired
-	private VoucherManagementAuthenticationSecurityConfig securityConfig;
+	@Value("${frontend.url}")
+	private String frontEndUrl;
 	
 
 	@Override
@@ -73,7 +73,7 @@ public class UserService implements IUserService  {
 			return result;
 
 		} catch (Exception ex) {
-			logger.error("findByIsActiveTrue exception... {}", ex.toString());
+			logger.error("findByIsActiveTrue exception...", ex);
 			throw ex;
 
 		}
@@ -113,8 +113,6 @@ public class UserService implements IUserService  {
 				throw new Exception("User registration is not successful");
 			}
 			logger.info("User registration is successful.");
-			String verificationCode = encryptionUtils.encrypt(createdUser.getVerificationCode());
-			logger.info("verification code" + verificationCode);
 			sendVerificationEmail(createdUser);
 			}
 
@@ -122,7 +120,7 @@ public class UserService implements IUserService  {
 			return userDTO;
 
 		} catch (Exception e) {
-			logger.error("Error occurred while user creating, " + e.toString());
+			logger.error("Error occurred while creating user", e);
 			e.printStackTrace();
 			throw e;
 
@@ -161,7 +159,7 @@ public class UserService implements IUserService  {
 			logger.error("User login is not successful.");
 			throw new UserNotFoundException("Invalid Credentials");
 		} catch (Exception e) {
-			logger.error("Error occurred while validateUserLogin, " + e.toString());
+			logger.error("Error occurred while validating user login", e);
 			e.printStackTrace();
 			throw e;
 		}
@@ -219,7 +217,7 @@ public class UserService implements IUserService  {
 			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
 			return updateUserDTO;
 		} catch (Exception e) {
-			logger.error("Error occurred while user updating, " + e.toString());
+			logger.error("Error occurred while user updating", e);
 			e.printStackTrace();
 			throw e;
 		}
@@ -232,12 +230,12 @@ public class UserService implements IUserService  {
 
 			AmazonSimpleEmailService client = awsConfig.sesClient();
 			String from = awsConfig.getEmailFrom().trim();
-			String clientURL = securityConfig.getFrontEndUrl().trim();
+			String clientURL = frontEndUrl;
 
 			String to = user.getEmail();
 
 			String verificationCode = encryptionUtils.encrypt(user.getVerificationCode());
-			logger.info(" Verification Code "+ verificationCode);
+
 
 			String verifyURL = clientURL + "/verification/" + verificationCode.trim();
 			logger.info("verifyURL... {}", verifyURL);
@@ -254,7 +252,7 @@ public class UserService implements IUserService  {
 
 			AmazonSES.sendEmail(client, from, Arrays.asList(to), subject, body);
 		} catch (Exception e) {
-			logger.error("Error occurred while sendVerificationEmail, " + e.toString());
+			logger.error("Error occurred while sendVerificationEmail", e);
 			e.printStackTrace();
 		}
 	}
@@ -276,7 +274,7 @@ public class UserService implements IUserService  {
 			return updateUserDTO;
 
 		} catch (Exception e) {
-			logger.error("Error occurred while validateUserLogin, " + e.toString());
+			logger.error("Error occurred while validateUserLogin", e);
 			e.printStackTrace();
 			throw e;
 		}
@@ -317,15 +315,16 @@ public class UserService implements IUserService  {
 			User updateUser = userRepository.save(dbUser);
 			logger.info("Role update is successful");
 			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-			logger.info("Update Role "+updateUserDTO.getRole());
+			logger.info("Update Role: {}", updateUserDTO.getRole());
 			return updateUserDTO;
 
 		} catch (Exception e) {
-			logger.error("Error occurred while user update role, " + e.toString());
-			e.printStackTrace();
-			throw e;
+		     
+		    logger.error("Error occurred while updating user role. Error message: {}", e.getMessage(), e);		    
+		    throw new RuntimeException("Failed to update user role. Please check the logs for details.", e);
 
 		}
+
 	}
 
 	@Override
@@ -340,10 +339,13 @@ public class UserService implements IUserService  {
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
-			logger.error("Error occurred while checking specific active User by Email, " + e.toString());
-			e.printStackTrace();
-			throw e;
+
+		    logger.error("Error occurred while checking specific active user by email: {}", e.getMessage(), e);		     
+		    throw e;
+
 		}
+		
+
 	}
 	
 	@Override
@@ -358,7 +360,7 @@ public class UserService implements IUserService  {
 			return user;
 			
 		} catch (Exception e) {
-			logger.error("Error occurred while checking specific active User, " + e.toString());
+			logger.error("Error occurred while checking specific active User", e);
 			e.printStackTrace();
 			throw e;
 		}

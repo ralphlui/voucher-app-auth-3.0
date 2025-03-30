@@ -40,6 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.Cookie;
+import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -96,14 +97,13 @@ public class UserControllerTest {
 
 	User testUser;
 	User errorUser;
-	UserRequest userRequest = new UserRequest();
+	UserRequest userRequest;
 
 	private static List<UserDTO> mockUsers = new ArrayList<>();
 
 	@BeforeEach
 	void setUp() {
-		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true,
-				new ArrayList<String>());
+		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
 		testUser = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
@@ -116,7 +116,7 @@ public class UserControllerTest {
 	}
 
 	@AfterEach
-	public void tearDown() {
+	void tearDown() {
 		testUser = new User();
 		errorUser = new User();
 		userRequest = new UserRequest();
@@ -124,7 +124,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testGetAllUser() throws Exception {
+	void testGetAllUser() throws Exception {
 
 		Pageable pageable = PageRequest.of(0, 10, Sort.by("username").ascending());
 		Map<Long, List<UserDTO>> mockUserMap = new HashMap<>();
@@ -159,7 +159,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testUserLogin() throws Exception {
+	void testUserLogin() throws Exception {
 		testUser.setVerified(true);
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 		Mockito.when(userService.findByEmail(userRequest.getEmail())).thenReturn(testUser);
@@ -187,24 +187,30 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testVerifyUser() throws Exception {
+	void testVerifyUser() throws Exception {
 
 		String decodedVerificationCode = "7f03a9a9-d7a5-4742-bc85-68d52b2bee45";
 		String verificationCode = encryptionUtils.encrypt(decodedVerificationCode);
 		testUser.setVerified(true);
 		testUser.setActive(true);
 		testUser.setVerificationCode(decodedVerificationCode);
+		userRequest.setAccountVerificationCode(verificationCode);
 
 		Mockito.when(userService.verifyUser(verificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify/{verifyid}", verificationCode))
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.verified").value(true))
 				.andDo(print());
 
 		testUser.setVerificationCode("");
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/verify/{verifyid}", ""))
+
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify", "")
+				.contentType(MediaType.APPLICATION_JSON))
+
 				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
@@ -212,7 +218,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testCreateUser() throws Exception {
+	void testCreateUser() throws Exception {
 		Mockito.when(userService.createUser(Mockito.any(UserRequest.class))).thenReturn(DTOMapper.toUserDTO(testUser));
 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users").contentType(MediaType.APPLICATION_JSON)
@@ -231,7 +237,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testResetPassword() throws Exception {
+	void testResetPassword() throws Exception {
 		testUser.setVerified(true);
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 
@@ -240,7 +246,7 @@ public class UserControllerTest {
 		Mockito.when(userService.resetPassword(userRequest.getUserId(), userRequest.getPassword()))
 				.thenReturn(DTOMapper.toUserDTO(testUser));
 
-		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/{id}/resetPassword", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/resetPassword")
 				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -249,7 +255,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testUpdatedUser() throws Exception {
+	void testUpdatedUser() throws Exception {
 		testUser.setEmail("newemail@gmail.com");
 		testUser.setVerified(true);
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
@@ -259,7 +265,7 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -270,12 +276,14 @@ public class UserControllerTest {
 
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<String>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}", errorUser.getUserId())
-				.contentType(MediaType.APPLICATION_JSON).header("X-User-Id", "")
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users")
+				.contentType(MediaType.APPLICATION_JSON)
+				.header("Authorization", authorizationHeader)
+				.content(objectMapper.writeValueAsString(userRequest))
 				.content(objectMapper.writeValueAsString(errorUserRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
@@ -283,7 +291,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testActiveUser() throws Exception {
+	void testActiveUser() throws Exception {
 		testUser.setVerified(true);
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 		Mockito.when(userService.checkSpecificActiveUser(testUser.getUserId()))
@@ -292,7 +300,7 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/active", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/active")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -304,14 +312,14 @@ public class UserControllerTest {
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 		mockMvc.perform(
-				MockMvcRequestBuilders.get("/api/users/{id}/active", errorUser.getUserId()).header("X-User-Id", "")
+				MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
 						.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 	@Test
-	public void testUserLogout() throws Exception {
+	void testUserLogout() throws Exception {
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
@@ -323,7 +331,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testRefreshToken() throws Exception {
+	void testRefreshToken() throws Exception {
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken"))
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.message").value("Refresh token is missing")).andDo(print());
@@ -352,7 +360,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testVerifyToken() throws Exception {
+	void testVerifyToken() throws Exception {
 
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 
@@ -366,7 +374,7 @@ public class UserControllerTest {
 	}
 
 	@Test
-	public void testUpdatedUserRole() throws Exception {
+	 void testUpdatedUserRole() throws Exception {
 
 		testUser.setEmail("newemail@gmail.com");
 		testUser.setVerified(true);
@@ -380,11 +388,12 @@ public class UserControllerTest {
 
 		UserRequest userRequest = new UserRequest();
 		userRequest.setRole(RoleType.MERCHANT);
+		userRequest.setUserId(testUser.getUserId());
 
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", testUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -396,13 +405,13 @@ public class UserControllerTest {
 		// Error Case: Update with invalid user ID (e.g., empty X-User-Id)
 		errorUser.setActive(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false, new ArrayList<>());
+				RoleType.MERCHANT, false);
 		errorUserRequest.setUserId(errorUser.getUserId());
 
 		// Mock behavior for the error user
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/{id}/roles", errorUser.getUserId())
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
 				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
 				.content(objectMapper.writeValueAsString(errorUserRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -421,10 +430,13 @@ public class UserControllerTest {
 		mockUserDTO.setUserID("user-123");
 
 		when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(mockUserDTO);
-
-		when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
-				eq("Successfully get Google user info."), anyString(), anyString(), any(), any()))
-				.thenReturn(ResponseEntity.status(HttpStatus.OK).build());
+		
+		 
+		when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
 		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
 				.header("Authorization", validIdToken))
@@ -438,11 +450,14 @@ public class UserControllerTest {
 	    
 	    when(googleAuthService.verifyAndGetUserInfo(anyString())).thenReturn(null);
 
-	   
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
-	            eq("Failed to get Google user info."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
+	   
+	    
 	    mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
 	            .header("Authorization", validIdToken))
 	            .andExpect(status().isBadRequest())
@@ -459,10 +474,11 @@ public class UserControllerTest {
 
 	    when(jwtService.generateToken(anyString(), anyString(), anyString(), anyBoolean()))
 	            .thenReturn("mockAccessToken");
-
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
-	            eq("Access token generated successfully."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.OK).build());
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
 
 	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
 	            .contentType(MediaType.APPLICATION_JSON)
@@ -476,11 +492,14 @@ public class UserControllerTest {
 	@Test
 	void postGenerateAccessToken_UserNotFound() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(null);
-
-	    when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), anyString(),
-	            eq("Invalid user."), anyString(), anyString(), any(), any()))
-	            .thenReturn(ResponseEntity.status(HttpStatus.BAD_REQUEST).build());
 	    
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
+
+    
 	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
 	            .contentType(MediaType.APPLICATION_JSON)
 	            .content(objectMapper.writeValueAsString(userRequest)))

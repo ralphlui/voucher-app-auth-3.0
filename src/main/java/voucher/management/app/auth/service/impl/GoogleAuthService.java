@@ -5,7 +5,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 
-import voucher.management.app.auth.controller.UserController;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -15,7 +14,6 @@ import voucher.management.app.auth.utility.DTOMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -28,17 +26,20 @@ import java.security.GeneralSecurityException;
 @Service
 public class GoogleAuthService {
 	
-	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+	private static final Logger logger = LoggerFactory.getLogger(GoogleAuthService.class);
 
 	@Value("${GOOGLE_TOKEN_INFO_URL}")
 	public String googleTokenInfoUrl;
 
    
     private static String googleClientId= System.getenv("GOOGLE_CLIENT_ID");
-    
+     
+	
+	private final UserService userService;
 
-	@Autowired
-	private UserService userService;
+	public GoogleAuthService(UserService userService) {
+	    this.userService = userService;
+	}
 	
     
     public UserDTO verifyAndGetUserInfo(String idToken) throws GeneralSecurityException, IOException {
@@ -60,8 +61,11 @@ public class GoogleAuthService {
 
             // Fetch user information from Google
             RestTemplate restTemplate = new RestTemplate();
-            String url = googleTokenInfoUrl.trim() + idToken;
+            String url = String.format("%s?id_token=%s", googleTokenInfoUrl.trim(), idToken);
+
             Map<String, Object> val = restTemplate.getForObject(url, Map.class);
+            
+           
 
             if (val != null) {
                 email = (String) val.get("email");
@@ -89,7 +93,8 @@ public class GoogleAuthService {
             }
 
         } catch (Exception e) {
-            logger.error("Exception occurred: " + e.toString());
+
+            logger.error("Exception occurred: {} " , e.toString());
         }
 
         return  userDTO;

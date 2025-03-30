@@ -1,7 +1,5 @@
 package voucher.management.app.auth.dto;
 
-import java.util.List;
-
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 
@@ -13,7 +11,7 @@ public class UserRequest {
 	private String password;
 	private Boolean active;
 	private RoleType role;
-	private List<String> preferences;
+	private String accountVerificationCode;
 	
     private AuthProvider authProvider;
     
@@ -30,8 +28,7 @@ public class UserRequest {
 	}
 	
 
-	public UserRequest(String email, String password, String username, RoleType role, Boolean active,
-			List<String> preferences) {
+	public UserRequest(String email, String password, String username, RoleType role, Boolean active) {
 		super();
 		
 		this.email = email;
@@ -39,18 +36,8 @@ public class UserRequest {
 		this.username = username;
 		this.role = role;
 		this.active = active;
-		this.preferences = preferences;
 	}
 	
-	public UserRequest(String userId, String email, String password, String username, RoleType role, Boolean active) {
-		super();
-		
-		this.password = password;
-		this.username = username;
-		this.role = role;
-		this.active = active;
-	}
-
 	public String getEmail() {
 		return email;
 	}
@@ -97,16 +84,6 @@ public class UserRequest {
 		this.role = role;
 	}
 
-
-	public List<String> getPreferences() {
-		return preferences;
-	}
-
-
-	public void setPreferences(List<String> preferences) {
-		this.preferences = preferences;
-	}
-
 	public String getUserId() {
 		return userId;
 	}
@@ -129,6 +106,14 @@ public class UserRequest {
 
 	public void setOtp(String otp) {
 		this.otp = otp;
+	}
+
+	public String getAccountVerificationCode() {
+		return accountVerificationCode;
+	}
+
+	public void setAccountVerificationCode(String accountVerificationCode) {
+		this.accountVerificationCode = accountVerificationCode;
 	}
 	
 	
