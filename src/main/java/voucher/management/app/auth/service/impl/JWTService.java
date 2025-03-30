@@ -34,6 +34,9 @@ public class JWTService {
 
 	private final JWTConfig jwtConfig;
 	private final ApplicationContext context;
+	public static final String CLAIM_USERNAME = "userName";
+
+
 
 	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
@@ -52,7 +55,7 @@ public class JWTService {
 		
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
-		claims.put("userName", userName);
+		claims.put(CLAIM_USERNAME, userName);
 		return Jwts.builder().claims().add(claims).subject(userID).issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(tokenValidDuration)).and().signWith(loadPrivateKey(), Jwts.SIG.RS256).compact();
 	}
@@ -123,10 +126,10 @@ public class JWTService {
 	public String extractUserNameAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
 		try {
 			Claims claims = extractAllClaims(token);
-			String userName = claims.get("userName", String.class);
+			String userName = claims.get(CLAIM_USERNAME, String.class);
 			return userName;
 		} catch (ExpiredJwtException e) {
-			return e.getClaims().get("userName", String.class);
+			return e.getClaims().get(CLAIM_USERNAME, String.class);
 		} catch (Exception e) {
 			return AuditLogInvalidUser.INVALID_USER_NAME.toString();
 		}
