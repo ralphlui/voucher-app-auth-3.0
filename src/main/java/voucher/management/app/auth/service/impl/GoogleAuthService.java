@@ -28,7 +28,7 @@ public class GoogleAuthService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(GoogleAuthService.class);
 
-	@Value("${GOOGLE_TOKEN_INFO_URL}")
+	@Value("${google.token.info.url}")
 	public String googleTokenInfoUrl;
 
    
@@ -85,7 +85,7 @@ public class GoogleAuthService {
                 newUser.setPassword(email);
                 newUser.setAuthProvider(AuthProvider.GOOGLE);
                 newUser.setUsername(name);
-                newUser.setRole(RoleType.CUSTOMER);
+                newUser.setRole(RoleType.UNDEFINED);
                 newUser.setActive(true);
 
                 userDTO = userService.createUser(newUser);
