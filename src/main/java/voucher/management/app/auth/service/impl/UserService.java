@@ -48,6 +48,7 @@ public class UserService implements IUserService  {
 	
 	@Value("${frontend.url}")
 	private String frontEndUrl;
+	private static final String ACTIVE_USER_NOT_FOUND_MSG = "Active user is not found.";
 	
 
 	@Override
@@ -280,7 +281,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
 			logger.info("Active user is found.");
@@ -327,7 +328,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByEmailAndStatus(email, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
 			logger.info("Active user is found.");
@@ -348,7 +349,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active or verified user");
 			}
 			logger.info("Active user is found.");
