@@ -59,7 +59,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 		} catch (Exception e) {
 			logger.error("Error occurred while updating refresh token ", e);
 			e.printStackTrace();
-			throw e;
+			throw new RuntimeException("Error updating refresh token", e);
 
 		}
 	}
