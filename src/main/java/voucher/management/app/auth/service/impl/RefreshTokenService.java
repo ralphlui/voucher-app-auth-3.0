@@ -7,11 +7,11 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.JwtException;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.exception.UserNotFoundException;
@@ -20,18 +20,14 @@ import voucher.management.app.auth.service.IRefreshTokenService;
 import voucher.management.app.auth.utility.GeneralUtility;
 
 @Service
+@RequiredArgsConstructor
 public class RefreshTokenService implements IRefreshTokenService {
 
 	private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
 
-	@Autowired
-	private JWTService jwtService;
-
-	@Autowired
-	private UserService userService;
-
-	@Autowired
-	private RefreshTokenRepository refreshTokenRepsitory;
+	private final JWTService jwtService;
+	private final UserService userService;
+	private final RefreshTokenRepository refreshTokenRepository;
 
 	@Override
 	public void saveRefreshToken(String userID, String token) throws JwtException, IllegalArgumentException, Exception {
@@ -50,7 +46,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 		refreshToken.setLastUpdatedDate(LocalDateTime.now());
 		refreshToken.setUser(user);
 		refreshToken.setExpiryDate(localExpiredDateTime);
-		refreshTokenRepsitory.save(refreshToken);
+		refreshTokenRepository.save(refreshToken);
 	}
 
 	@Override
@@ -58,7 +54,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 
 		try {
 			String hashedToken = GeneralUtility.hashWithSHA256(token);
-			refreshTokenRepsitory.updateRefreshToken(revoked, LocalDateTime.now(), hashedToken);
+			refreshTokenRepository.updateRefreshToken(revoked, LocalDateTime.now(), hashedToken);
 
 		} catch (Exception e) {
 			logger.error("Error occurred while updating refresh token ", e);
@@ -72,7 +68,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 	public Boolean verifyRefreshToken(String refreshToken) throws JwtException, IllegalArgumentException, Exception {
 
 		String hashedToken = GeneralUtility.hashWithSHA256(refreshToken);
-		RefreshToken savedRefreshToken = refreshTokenRepsitory.findByToken(hashedToken);
+		RefreshToken savedRefreshToken = refreshTokenRepository.findByToken(hashedToken);
 
 		if (savedRefreshToken == null || savedRefreshToken.isRevoked()
 				|| savedRefreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
