@@ -3,7 +3,7 @@ package voucher.management.app.auth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -207,5 +207,17 @@ public class UserServiceTest {
 
 
 	}
+	
+	@Test
+    void findActiveUserByID() {
+    
+        when(userRepository.findByUserIdAndStatus(user.getUserId(), true, true)).thenReturn(user);
+
+        User result = userService.findActiveUserByID(user.getUserId());
+
+        assertNotNull(result);
+        assertEquals(user.getUserId(), result.getUserId());
+        assertEquals("useradmin@gmail.com", result.getEmail());
+    }
 
 }
