@@ -11,7 +11,7 @@ public class EncryptionUtils {
 	@Value("${aes.secret.key}")
 	private String aesSecretKey;
 	
-	private static final String AES_ALGORITHM = "AES";
+	private static final String AES_ALGORITHM = "AES/GCM/NoPadding";
 	
 	public String decrypt(String encryptedCode) throws Exception {
 		byte[] bytekey = hexStringToByteArray(aesSecretKey.trim());
