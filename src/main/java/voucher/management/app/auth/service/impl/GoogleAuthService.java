@@ -61,7 +61,7 @@ public class GoogleAuthService {
 
             // Fetch user information from Google
             RestTemplate restTemplate = new RestTemplate();
-            String url = String.format("%s?id_token=%s", googleTokenInfoUrl.trim(), idToken);
+            String url = googleTokenInfoUrl.trim() + idToken;
 
             Map<String, Object> val = restTemplate.getForObject(url, Map.class);
             
