@@ -11,13 +11,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 
@@ -35,21 +36,15 @@ import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
 @Service
+@RequiredArgsConstructor
 public class UserService implements IUserService  {
 	
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-	@Autowired
-	private UserRepository userRepository;
-	
-	@Autowired
-	private PasswordEncoder passwordEncoder;
-	
-	@Autowired
-	private EncryptionUtils encryptionUtils;
-	
-	@Autowired
-	private AWSConfig awsConfig;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final EncryptionUtils encryptionUtils;
+	private final AWSConfig awsConfig;
 	
 	@Value("${frontend.url}")
 	private String frontEndUrl;
