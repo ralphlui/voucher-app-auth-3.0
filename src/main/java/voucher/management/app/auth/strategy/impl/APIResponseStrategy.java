@@ -102,7 +102,6 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 	}
 	
     public ResponseEntity<APIResponse<List<UserDTO>>> handleResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName, long totalRecord) {
-		logger.info(message);
 		HttpStatus httpStatus = HttpStatus.OK;
 		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 		return ResponseEntity.status(httpStatus).body(
