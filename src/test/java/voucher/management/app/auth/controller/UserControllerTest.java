@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,10 +72,10 @@ public class UserControllerTest {
 	@Autowired
 	private MockMvc mockMvc;
 
-	@Autowired
+	@InjectMocks
 	private ObjectMapper objectMapper;
 
-	@Autowired
+	@MockBean
 	private EncryptionUtils encryptionUtils;
 
 	@MockBean
@@ -94,6 +95,7 @@ public class UserControllerTest {
 
 	private String validIdToken = "Bearer valid-id-token";
 	private UserDTO mockUserDTO;
+	private String accountVerificationCode = "mockVerificationCode";
 
 	User testUser;
 	User errorUser;
@@ -105,6 +107,7 @@ public class UserControllerTest {
 	void setUp() {
 		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@21212", "UserAdmin", RoleType.MERCHANT, true);
 		userRequest.setUserId("8f6e8b84-1219-4c28-a95c-9891c11328b7");
+		userRequest.setAccountVerificationCode(accountVerificationCode);
 		testUser = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
 		errorUser = new User("error@gmail.com", "Error", "Pwd@21212", RoleType.MERCHANT, true);
@@ -189,14 +192,11 @@ public class UserControllerTest {
 	@Test
 	void testVerifyUser() throws Exception {
 
-		String decodedVerificationCode = "7f03a9a9-d7a5-4742-bc85-68d52b2bee45";
-		String verificationCode = encryptionUtils.encrypt(decodedVerificationCode);
 		testUser.setVerified(true);
 		testUser.setActive(true);
-		testUser.setVerificationCode(decodedVerificationCode);
-		userRequest.setAccountVerificationCode(verificationCode);
+		testUser.setVerificationCode(accountVerificationCode);
 
-		Mockito.when(userService.verifyUser(verificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
+		Mockito.when(userService.verifyUser(accountVerificationCode)).thenReturn(DTOMapper.toUserDTO(testUser));
 
 		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify")
 				.contentType(MediaType.APPLICATION_JSON)

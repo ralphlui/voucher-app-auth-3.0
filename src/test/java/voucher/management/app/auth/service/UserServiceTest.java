@@ -13,8 +13,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
@@ -43,7 +43,7 @@ public class UserServiceTest {
 
 	private static List<User> mockUsers = new ArrayList<>();
 
-	@Autowired
+	@InjectMocks
 	private UserService userService;
 
 	@MockBean
@@ -61,6 +61,7 @@ public class UserServiceTest {
 
 	@BeforeEach
 	void setUp() {
+		userService = new UserService(userRepository, passwordEncoder, encryptionUtils, null);
 		userRequest = new UserRequest("useradmin@gmail.com", "Pwd@123", "UserAdmin", RoleType.CUSTOMER, true);
 		user = new User(userRequest.getEmail(), userRequest.getUsername(), userRequest.getPassword(),
 				userRequest.getRole(), true);
