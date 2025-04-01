@@ -112,8 +112,7 @@ public class UserService implements IUserService  {
 			sendVerificationEmail(createdUser);
 			}
 
-			UserDTO userDTO = DTOMapper.toUserDTO(createdUser);
-			return userDTO;
+			return DTOMapper.toUserDTO(createdUser);
 
 		} catch (Exception e) {
 			logger.error("Error occurred while creating user", e);
@@ -138,6 +137,7 @@ public class UserService implements IUserService  {
 			User user = userRepository.findByUserId(userId);
 			return user;
 		} catch (Exception e) {
+			logger.error("Exception occurred while executing findByUserId", e);
 			throw e;
 		}
 		
@@ -210,8 +210,7 @@ public class UserService implements IUserService  {
 			logger.info("Update User...");
 			User updateUser = userRepository.save(dbUser);
 			logger.info("User update is successful");
-			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-			return updateUserDTO;
+			return DTOMapper.toUserDTO(updateUser);
 		} catch (Exception e) {
 			logger.error("Error occurred while user updating", e);
 			e.printStackTrace();
@@ -266,8 +265,7 @@ public class UserService implements IUserService  {
 			dbUser.setPassword(passwordEncoder.encode(password));
 			User updatedUser = userRepository.save(dbUser);
 			logger.info("Reset Password is successful.");
-			UserDTO updateUserDTO = DTOMapper.toUserDTO(updatedUser);
-			return updateUserDTO;
+			return DTOMapper.toUserDTO(updatedUser);
 
 		} catch (Exception e) {
 			logger.error("Error occurred while validateUserLogin", e);
@@ -335,8 +333,7 @@ public class UserService implements IUserService  {
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
-
-		    logger.error("Error occurred while checking specific active user by email: {}", e.getMessage(), e);		     
+		    logger.error("Error occurred while checking specific active user by email", e);		     
 		    throw e;
 
 		}
