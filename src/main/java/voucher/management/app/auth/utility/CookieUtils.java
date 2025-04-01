@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,9 @@ public class CookieUtils {
 	 
 	private final RefreshTokenService refreshTokenService;
 	
+	@Value("${secure.flag.enable}")
+	private String secureEnable;
+	
 	public CookieUtils(JWTService jwtService, RefreshTokenService refreshTokenService) {
 		this.jwtService = jwtService;
 		this.refreshTokenService = refreshTokenService;
@@ -31,7 +35,7 @@ public class CookieUtils {
 	public ResponseCookie createCookie(String name, String value, boolean httpOnly, long duration) {
 	    return ResponseCookie.from(name, value)
 	            .httpOnly(httpOnly)  // Secure access based on token type
-	            .secure(false)        // Ensure HTTPS only
+	            .secure(Boolean.parseBoolean(secureEnable))       // Ensure HTTPS only
 	            .path("/")           // Accessible across the app
 	            .maxAge(Duration.ofHours(duration)) // More readable expiration
 	            .sameSite("Strict")  // CSRF protection
