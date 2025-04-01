@@ -11,13 +11,14 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 
@@ -35,24 +36,19 @@ import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
 @Service
+@RequiredArgsConstructor
 public class UserService implements IUserService  {
 	
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-	@Autowired
-	private UserRepository userRepository;
-	
-	@Autowired
-	private PasswordEncoder passwordEncoder;
-	
-	@Autowired
-	private EncryptionUtils encryptionUtils;
-	
-	@Autowired
-	private AWSConfig awsConfig;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final EncryptionUtils encryptionUtils;
+	private final AWSConfig awsConfig;
 	
 	@Value("${frontend.url}")
 	private String frontEndUrl;
+	private static final String ACTIVE_USER_NOT_FOUND_MSG = "Active user is not found.";
 	
 
 	@Override
@@ -238,7 +234,7 @@ public class UserService implements IUserService  {
 
 
 			String verifyURL = clientURL + "/verification/" + verificationCode.trim();
-			logger.info("verifyURL... {}", verifyURL);
+			logger.info("verifyURL...");
 
 			String subject = "Please verify your registration";
 			String body = "Dear [[name]],<br><br>" + "Thank you for choosing our service.<br>"
@@ -285,7 +281,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
 			logger.info("Active user is found.");
@@ -332,7 +328,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByEmailAndStatus(email, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
 			logger.info("Active user is found.");
@@ -353,7 +349,7 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active or verified user");
 			}
 			logger.info("Active user is found.");

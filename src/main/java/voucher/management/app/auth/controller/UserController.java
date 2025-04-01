@@ -254,10 +254,6 @@ public class UserController {
 
 		logger.info("Call user resetPassword API...");
 
-
-		logger.info("Reset Password : {}", resetPwdReq.getEmail());
-
-
 		String activityType = "Authentication-ResetPassword";
 		String apiEndPoint = String.format("api/users/resetPassword");
 		String httpMethod = HttpMethod.PATCH.name();
@@ -401,9 +397,9 @@ public class UserController {
 		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
 
 		try {
-			userID = jwtService.retrieveUserID(tokenFromCookie);
+			userID = jwtService.extractUserIdAllowExpiredToken(tokenFromCookie);
 			User user = userService.findByUserId(userID);
-			auditLogUserName = jwtService.retrieveUserName(tokenFromCookie);
+			auditLogUserName = jwtService.extractUserNameAllowExpiredToken(tokenFromCookie);
 
 			
 			String refreshToken = cookieUtils.getTokenFromCookies(request, REFRESH_TOKEN_COOKIE).orElse(null);
@@ -458,8 +454,8 @@ public class UserController {
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 
 			}
-			auditLogUserId = jwtService.retrieveUserID(refreshToken);
-			auditLogUserName = jwtService.retrieveUserName(refreshToken);
+			auditLogUserId = jwtService.extractUserIdAllowExpiredToken(refreshToken);
+			auditLogUserName = jwtService.extractUserNameAllowExpiredToken(refreshToken);
 
 			if (refreshTokenService.verifyRefreshToken(refreshToken)) {
 				Claims claims = jwtService.extractAllClaims(refreshToken);
@@ -727,12 +723,12 @@ public class UserController {
 			throws JwtException, IllegalArgumentException, Exception {
 		String jwtToken = authorizationHeader.substring(7);
 		auditLogUserId = retrieveUserID(authorizationHeader);
-		auditLogUserName = jwtService.retrieveUserName(jwtToken);
+		auditLogUserName = jwtService.extractUserNameAllowExpiredToken(jwtToken);
 	}
 
 	private String retrieveUserID(String authorizationHeader) throws JwtException, IllegalArgumentException, Exception {
 		String jwtToken = authorizationHeader.substring(7);
-		return jwtService.retrieveUserID(jwtToken);
+		return jwtService.extractUserIdAllowExpiredToken(jwtToken);
 	}
 
 }

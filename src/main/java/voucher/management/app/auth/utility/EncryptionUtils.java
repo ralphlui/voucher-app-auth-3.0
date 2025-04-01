@@ -1,6 +1,7 @@
 package voucher.management.app.auth.utility;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,12 +13,16 @@ public class EncryptionUtils {
 	private String aesSecretKey;
 	
 	private static final String AES_ALGORITHM = "AES";
+	private static final String AES_TRANSFORMATION_GCM = "AES/GCM/NoPadding";
+
+	
 	
 	public String decrypt(String encryptedCode) throws Exception {
 		byte[] bytekey = hexStringToByteArray(aesSecretKey.trim());
 		SecretKeySpec sks = new SecretKeySpec(bytekey, AES_ALGORITHM);
-		Cipher cipher = Cipher.getInstance(AES_ALGORITHM);
-		cipher.init(Cipher.DECRYPT_MODE, sks);
+	    GCMParameterSpec gcmSpec = new GCMParameterSpec(128, bytekey); // 128-bit tag
+		Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION_GCM);
+		cipher.init(Cipher.DECRYPT_MODE, sks, gcmSpec);
 		byte[] decrypted = cipher.doFinal(hexStringToByteArray(encryptedCode));
 		String OriginalPassword = new String(decrypted);
 		return OriginalPassword;
@@ -25,9 +30,10 @@ public class EncryptionUtils {
 
 	public String encrypt(String code) throws Exception {
 		byte[] bytekey = hexStringToByteArray(aesSecretKey.trim());
-		SecretKeySpec sks = new SecretKeySpec(bytekey,AES_ALGORITHM);
-		Cipher cipher = Cipher.getInstance(AES_ALGORITHM);
-		cipher.init(Cipher.ENCRYPT_MODE, sks, cipher.getParameters());
+		SecretKeySpec sks = new SecretKeySpec(bytekey, AES_ALGORITHM);
+		GCMParameterSpec gcmSpec = new GCMParameterSpec(128, bytekey); // 128-bit tag
+		Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION_GCM);
+		cipher.init(Cipher.ENCRYPT_MODE, sks, gcmSpec);
 		byte[] encrypted = cipher.doFinal(code.getBytes());
 		String encryptedpwd = byteArrayToHexString(encrypted);
 		return encryptedpwd;

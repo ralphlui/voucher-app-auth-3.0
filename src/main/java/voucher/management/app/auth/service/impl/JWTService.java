@@ -5,15 +5,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.InvalidKeyException;
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.configuration.JWTConfig;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
@@ -26,17 +25,18 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 @Service
+@RequiredArgsConstructor
 public class JWTService {
 	
 	@Value("${pentest.enable}")
 	private String pentestEnable;
 
 
-	@Autowired
-	private JWTConfig jwtConfig;
-	
-	@Autowired
-	ApplicationContext context;
+	private final JWTConfig jwtConfig;
+	private final ApplicationContext context;
+	public static final String CLAIM_USERNAME = "userName";
+
+
 
 	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
 			throws InvalidKeyException, Exception {
@@ -55,7 +55,7 @@ public class JWTService {
 		
 		Map<String, Object> claims = new HashMap<>();
 		claims.put("userEmail", userEmail);
-		claims.put("userName", userName);
+		claims.put(CLAIM_USERNAME, userName);
 		return Jwts.builder().claims().add(claims).subject(userID).issuedAt(new Date(System.currentTimeMillis()))
 				.expiration(new Date(tokenValidDuration)).and().signWith(loadPrivateKey(), Jwts.SIG.RS256).compact();
 	}
@@ -74,7 +74,6 @@ public class JWTService {
 	}
 
 	public String extractUserID(String token) throws JwtException, IllegalArgumentException, Exception {
-		// TODO Auto-generated method stub
 		return extractClaim(token, Claims::getSubject);
 	}
 
@@ -107,13 +106,12 @@ public class JWTService {
 	public UserDetails getUserDetail(String token) throws JwtException, IllegalArgumentException, Exception {
 		String userID = extractUserID(token);
 		User user = context.getBean(UserService.class).findActiveUserByID(userID);
-		UserDetails userDetails = org.springframework.security.core.userdetails.User
+		return org.springframework.security.core.userdetails.User
 				.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole().toString())
 				.build();
-		return userDetails;
 	}
     
-	public String retrieveUserID(String token) throws JwtException, IllegalArgumentException, Exception {
+	public String extractUserIdAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
 		try {
 			return extractClaim(token, Claims::getSubject);
 		} catch (ExpiredJwtException e) {
@@ -123,13 +121,13 @@ public class JWTService {
 		}
 	}
 	
-	public String retrieveUserName(String token) throws JwtException, IllegalArgumentException, Exception {
+	public String extractUserNameAllowExpiredToken(String token) throws JwtException, IllegalArgumentException, Exception {
 		try {
 			Claims claims = extractAllClaims(token);
-			String userName = claims.get("userName", String.class);
+			String userName = claims.get(CLAIM_USERNAME, String.class);
 			return userName;
 		} catch (ExpiredJwtException e) {
-			return e.getClaims().get("userName", String.class);
+			return e.getClaims().get(CLAIM_USERNAME, String.class);
 		} catch (Exception e) {
 			return AuditLogInvalidUser.INVALID_USER_NAME.toString();
 		}
