@@ -31,7 +31,7 @@ public class CookieUtils {
 	public ResponseCookie createCookie(String name, String value, boolean httpOnly, long duration) {
 	    return ResponseCookie.from(name, value)
 	            .httpOnly(httpOnly)  // Secure access based on token type
-	            .secure(true)        // Ensure HTTPS only
+	            .secure(false)        // Ensure HTTPS only
 	            .path("/")           // Accessible across the app
 	            .maxAge(Duration.ofHours(duration)) // More readable expiration
 	            .sameSite("Strict")  // CSRF protection
