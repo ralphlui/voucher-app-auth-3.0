@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -52,17 +51,6 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 				.body(APIResponse.error(validationResult.getMessage()));
 	}
 
-	/*@Override
-	public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO,
-			String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName) {
-		logger.error(message);
-		HttpStatus httpStatus = HttpStatus.OK;
-		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId,
-				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
-	}*/
-	
-	
 	@Override
 	public ResponseEntity<APIResponse<UserDTO>> handleResponseAndSendAuditLogForSuccessCase(UserDTO userDTO,
 			String message, AuditLogRequest auditLogRequest) {
