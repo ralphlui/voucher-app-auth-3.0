@@ -234,7 +234,7 @@ public class UserService implements IUserService  {
 
 
 			String verifyURL = clientURL + "/verification/" + verificationCode.trim();
-			logger.info("verifyURL... {}", verifyURL);
+			logger.info("verifyURL...");
 
 			String subject = "Please verify your registration";
 			String body = "Dear [[name]],<br><br>" + "Thank you for choosing our service.<br>"

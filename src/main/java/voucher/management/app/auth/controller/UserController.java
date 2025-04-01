@@ -254,10 +254,6 @@ public class UserController {
 
 		logger.info("Call user resetPassword API...");
 
-
-		logger.info("Reset Password : {}", resetPwdReq.getEmail());
-
-
 		String activityType = "Authentication-ResetPassword";
 		String apiEndPoint = String.format("api/users/resetPassword");
 		String httpMethod = HttpMethod.PATCH.name();
