@@ -534,7 +534,7 @@ public class UserControllerTest {
 	
 	
 	@Test
-	void postGenerateAccessToken() throws Exception {
+	void testGenerateAccessToken() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
 	            .thenReturn(DTOMapper.toUserDTO(testUser));
 
@@ -553,10 +553,38 @@ public class UserControllerTest {
 	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
 	            .andExpect(jsonPath("$.success").value(true))
 	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));  
+	    
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isOk())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(true))
+	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));
+	}
+	
+	@Test
+	void testGenerateAccessTokenError() throws Exception {
+	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
+	            .thenReturn(DTOMapper.toUserDTO(testUser));
+
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
+
+	    
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isUnauthorized())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(false));
 	}
 
 	@Test
-	void postGenerateAccessToken_UserNotFound() throws Exception {
+	void GenerateAccessToken_UserNotFound() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(null);
 	    
 	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
