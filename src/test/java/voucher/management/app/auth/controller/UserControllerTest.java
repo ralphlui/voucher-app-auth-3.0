@@ -449,9 +449,9 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.data.role").value(testUser.getRole().toString())).andDo(print());
 
 		// Error Case: Update with invalid user ID (e.g., empty X-User-Id)
-		errorUser.setActive(false);
+		errorUser.setVerified(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false);
+				RoleType.MERCHANT, true);
 		errorUserRequest.setUserId(errorUser.getUserId());
 
 		// Mock behavior for the error user
@@ -465,6 +465,21 @@ public class UserControllerTest {
 
 		verify(userService, times(1)).findByUserId(testUser.getUserId());
 		verify(userService, times(1)).findByUserId(errorUser.getUserId());
+		
+		
+		errorUser.setVerified(true);
+		UserRequest noRoleTypeUserReq = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
+				null, true);
+		noRoleTypeUserReq.setUserId(errorUser.getUserId());
+
+		// Mock behavior for the error user
+		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
+
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
+				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
+				.content(objectMapper.writeValueAsString(noRoleTypeUserReq)))
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 	@Test
