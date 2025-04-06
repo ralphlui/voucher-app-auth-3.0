@@ -504,6 +504,11 @@ public class UserControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Successfully get Google user info."));
+		
+		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
+				.header("Authorization", ""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false));
 	}
 	
 	@Test
