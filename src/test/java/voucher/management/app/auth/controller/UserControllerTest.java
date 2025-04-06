@@ -243,9 +243,9 @@ public class UserControllerTest {
 		testUser.setVerificationCode("");
 
 		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify", "")
-				.contentType(MediaType.APPLICATION_JSON))
-
-				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
+				.contentType(MediaType.APPLICATION_JSON)
+		        .content(objectMapper.writeValueAsString(testUser)))
+				.andExpect(MockMvcResultMatchers.status().isBadRequest())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 
