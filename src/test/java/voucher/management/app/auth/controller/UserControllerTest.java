@@ -286,6 +286,18 @@ public class UserControllerTest {
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Reset Password is completed.")).andDo(print());
+		
+		testUser.setVerified(false);
+		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+
+		userRequest.setUserId(testUser.getUserId());
+		Mockito.when(userService.resetPassword(userRequest.getUserId(), userRequest.getPassword()))
+				.thenReturn(DTOMapper.toUserDTO(testUser));
+		
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/resetPassword")
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(userRequest)))
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 	@Test
