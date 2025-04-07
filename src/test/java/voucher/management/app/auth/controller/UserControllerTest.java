@@ -554,13 +554,13 @@ public class UserControllerTest {
 	            .andExpect(jsonPath("$.success").value(true))
 	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));  
 	    
+	    userRequest.setEmail("");
 	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
 	            .contentType(MediaType.APPLICATION_JSON)
 	            .content(objectMapper.writeValueAsString(userRequest)))
-	            .andExpect(status().isOk())
+	            .andExpect(status().isBadRequest())
 	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-	            .andExpect(jsonPath("$.success").value(true))
-	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));
+	            .andExpect(jsonPath("$.success").value(false));
 	}
 	
 	@Test
