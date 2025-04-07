@@ -49,6 +49,7 @@ public class UserService implements IUserService  {
 	@Value("${frontend.url}")
 	private String frontEndUrl;
 	private static final String ACTIVE_USER_NOT_FOUND_MSG = "Active user is not found.";
+	private static final String ACTIVE_USER_FOUND_MSG = "Active user is found.";
 	
 
 	@Override
@@ -282,7 +283,7 @@ public class UserService implements IUserService  {
 				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
-			logger.info("Active user is found.");
+			logger.info(ACTIVE_USER_FOUND_MSG);
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
@@ -329,7 +330,7 @@ public class UserService implements IUserService  {
 				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
-			logger.info("Active user is found.");
+			logger.info(ACTIVE_USER_FOUND_MSG);
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
@@ -349,7 +350,7 @@ public class UserService implements IUserService  {
 				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active or verified user");
 			}
-			logger.info("Active user is found.");
+			logger.info(ACTIVE_USER_FOUND_MSG);
 			return user;
 			
 		} catch (Exception e) {
