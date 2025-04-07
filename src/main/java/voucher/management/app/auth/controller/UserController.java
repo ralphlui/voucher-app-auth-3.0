@@ -68,6 +68,7 @@ public class UserController {
 
 	private static final String ACCESS_TOKEN_COOKIE = "access_token";
 	private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+	private static final String API_ENDPOINT = "api/users";
 
 
 
@@ -78,7 +79,7 @@ public class UserController {
 		logger.info("Call user getAll API with page={}, size={}", page, size);
 		String message = "";
 		String activityType = "Authentication-RetrieveAllActiveUsers";
-		String apiEndPoint = "api/users";
+		String apiEndPoint = API_ENDPOINT;
 		String httpMethod = HttpMethod.GET.name();
 		String activityDesc = "Retreving active user list is failed due to ";
 		
@@ -120,7 +121,7 @@ public class UserController {
 		logger.info("Call user create API...");
 		String message;
 		String activityType = "Authentication-CreateUser";
-		String apiEndPoint = "api/users";
+		String apiEndPoint = API_ENDPOINT;
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "User registration is failed due to ";
 		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
@@ -298,7 +299,7 @@ public class UserController {
 		logger.info("Call user update API...");
 		String message;
 		String activityType = "Authentication-UpdateUser";
-		String apiEndPoint = String.format("api/users");
+		String apiEndPoint = String.format(API_ENDPOINT);
 		String httpMethod = HttpMethod.PUT.name();
 		String activityDesc = "Update User failed due to ";
 		String userID = userRequest.getUserId();
