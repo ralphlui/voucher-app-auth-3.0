@@ -3,6 +3,10 @@ package voucher.management.app.auth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -11,10 +15,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
@@ -31,8 +39,10 @@ import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
+import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.UserService;
+import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
 @SpringBootTest
@@ -52,12 +62,21 @@ public class UserServiceTest {
 	@MockBean
 	private PasswordEncoder passwordEncoder;
 
-	@MockBean
+	@Mock
 	private EncryptionUtils encryptionUtils;
+
+	
+
+	@Value("${frontend.url}")
+	private String frontEndUrl = "https://example.com";
 
 	private static User user;
 
 	private static UserRequest userRequest;
+	
+
+    private final String encryptedCode = "encryptedCode123";
+    private final String decryptedCode = "decryptedCode456";
 
 	@BeforeEach
 	void setUp() {
@@ -219,6 +238,105 @@ public class UserServiceTest {
         assertNotNull(result);
         assertEquals(user.getUserId(), result.getUserId());
         assertEquals("useradmin@gmail.com", result.getEmail());
+        
     }
+	
+
+    @Test
+    void testFindActiveUserByID_UserNotFound() {
+        String userId = "456";
+
+        when(userRepository.findByUserIdAndStatus(userId, true, true)).thenReturn(null);
+
+        UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
+            userService.findActiveUserByID(userId);
+        });
+
+        assertEquals("This user is not an active or verified user", exception.getMessage());
+        verify(userRepository).findByUserIdAndStatus(userId, true, true);
+    }
+    
+    @Test
+    void testverifyUserUserNotFound() throws Exception {
+        // Arrange
+        Mockito.when(encryptionUtils.decrypt(encryptedCode)).thenReturn(decryptedCode);
+        Mockito.when(userRepository.findByVerificationCode(decryptedCode, false, true)).thenReturn(null);
+
+        // Act & Assert
+        Exception exception = Assertions.assertThrows(UserNotFoundException.class, () -> {
+            userService.verifyUser(encryptedCode);
+        });
+
+        Assertions.assertEquals("Vefriy user failed: Verfiy Id is invalid or already verified.", exception.getMessage());
+    }
+
+	@Test
+	void testverifyUserUserDTONull() throws Exception {
+		// Arrange
+		User user = new User();
+		user.setVerified(false);
+		user.setVerificationCode(decryptedCode);
+
+		User savedUser = new User();
+		savedUser.setVerified(true);
+
+		Mockito.when(encryptionUtils.decrypt(encryptedCode)).thenReturn(decryptedCode);
+		Mockito.when(userRepository.findByVerificationCode(decryptedCode, false, true)).thenReturn(user);
+		Mockito.when(userRepository.save(user)).thenReturn(savedUser);
+		try (MockedStatic<DTOMapper> mockedStatic = Mockito.mockStatic(DTOMapper.class)) {
+			mockedStatic.when(() -> DTOMapper.toUserDTO(savedUser)).thenReturn(null);
+
+			Exception exception = Assertions.assertThrows(UserNotFoundException.class, () -> {
+				userService.verifyUser(encryptedCode);
+			});
+
+			Assertions.assertEquals("Vefriy user failed: Verify Id is invalid or already verified.",
+					exception.getMessage());
+		}
+	}
+	
+	 @Test
+	    void testCreateUserwithGoogleProvider_success() throws Exception {
+	        // Given
+	        UserRequest request = new UserRequest();
+	        request.setEmail("google@example.com");
+	        request.setUsername("googleuser");
+	        request.setPassword("anyPassword");
+	        request.setAuthProvider(AuthProvider.GOOGLE);
+	        request.setRole(RoleType.CUSTOMER);
+
+	        when(passwordEncoder.encode(toString())).thenReturn("encoded");
+	        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+	        // When
+	        UserDTO result = userService.createUser(request);
+
+	        // Then
+	        assertNotNull(result);
+	        assertEquals("google@example.com", result.getEmail());
+	        verify(userRepository).save(any(User.class));
+	        // ensure email verification is not sent
+	    }
+
+	    @Test
+	    void testCreateUserSaveFails_throwsException() {
+	        // Given
+	        UserRequest request = new UserRequest();
+	        request.setEmail("fail@example.com");
+	        request.setUsername("failuser");
+	        request.setPassword("password");
+	        request.setAuthProvider(AuthProvider.NATIVE);
+	        request.setRole(RoleType.CUSTOMER);
+
+	        when(passwordEncoder.encode(toString())).thenReturn("encoded");
+	        when(userRepository.save(any(User.class))).thenReturn(null);
+
+	        // Then
+	        Exception exception = assertThrows(Exception.class, () -> {
+	            userService.createUser(request);
+	        });
+
+	        assertTrue(exception.getMessage().contains("User registration is not successful"));
+	    }
 
 }

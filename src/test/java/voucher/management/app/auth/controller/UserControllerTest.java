@@ -32,6 +32,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -93,6 +95,14 @@ public class UserControllerTest {
 	@Mock
 	private APIResponseStrategy apiResponseStrategy;
 
+	 // Control flag per test
+    static ThreadLocal<String> pentestValue = ThreadLocal.withInitial(() -> "true");
+
+	@DynamicPropertySource
+	static void dynamicProperties(DynamicPropertyRegistry registry) {
+		registry.add("pentest.enable", () -> pentestValue.get());
+	}
+	
 	private String validIdToken = "Bearer valid-id-token";
 	private UserDTO mockUserDTO;
 	private String accountVerificationCode = "mockVerificationCode";
@@ -169,7 +179,7 @@ public class UserControllerTest {
 
 		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
 				.thenReturn(DTOMapper.toUserDTO(testUser));
-
+		
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -180,6 +190,7 @@ public class UserControllerTest {
 
 		UserRequest userNotFoundRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212");
 
+		 pentestValue.set("false"); 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(userNotFoundRequest)))
 				.andExpect(MockMvcResultMatchers.status().isNotFound())
@@ -188,6 +199,29 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 
 	}
+	
+	
+	@Test
+	void testUserLoginForPenTest() throws Exception {
+		testUser.setVerified(true);
+		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+		Mockito.when(userService.findByEmail(userRequest.getEmail())).thenReturn(testUser);
+
+		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
+				.thenReturn(DTOMapper.toUserDTO(testUser));
+
+		 pentestValue.set("true"); 
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
+				.andExpect(jsonPath("$.data.username").value(userRequest.getUsername()))
+				.andExpect(jsonPath("$.data.email").value(userRequest.getEmail()))
+				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString())).andDo(print());
+
+
+	}
+
 
 	@Test
 	void testVerifyUser() throws Exception {
@@ -209,9 +243,9 @@ public class UserControllerTest {
 		testUser.setVerificationCode("");
 
 		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/verify", "")
-				.contentType(MediaType.APPLICATION_JSON))
-
-				.andExpect(MockMvcResultMatchers.status().isUnauthorized())
+				.contentType(MediaType.APPLICATION_JSON)
+		        .content(objectMapper.writeValueAsString(testUser)))
+				.andExpect(MockMvcResultMatchers.status().isBadRequest())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 
@@ -252,6 +286,18 @@ public class UserControllerTest {
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Reset Password is completed.")).andDo(print());
+		
+		testUser.setVerified(false);
+		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+
+		userRequest.setUserId(testUser.getUserId());
+		Mockito.when(userService.resetPassword(userRequest.getUserId(), userRequest.getPassword()))
+				.thenReturn(DTOMapper.toUserDTO(testUser));
+		
+		mockMvc.perform(MockMvcRequestBuilders.patch("/api/users/resetPassword")
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(userRequest)))
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 	@Test
@@ -403,9 +449,9 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.data.role").value(testUser.getRole().toString())).andDo(print());
 
 		// Error Case: Update with invalid user ID (e.g., empty X-User-Id)
-		errorUser.setActive(false);
+		errorUser.setVerified(false);
 		UserRequest errorUserRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
-				RoleType.MERCHANT, false);
+				RoleType.MERCHANT, true);
 		errorUserRequest.setUserId(errorUser.getUserId());
 
 		// Mock behavior for the error user
@@ -419,6 +465,21 @@ public class UserControllerTest {
 
 		verify(userService, times(1)).findByUserId(testUser.getUserId());
 		verify(userService, times(1)).findByUserId(errorUser.getUserId());
+		
+		
+		errorUser.setVerified(true);
+		UserRequest noRoleTypeUserReq = new UserRequest(errorUser.getEmail(), "Pwd@21212", "ErrorUser",
+				null, true);
+		noRoleTypeUserReq.setUserId(errorUser.getUserId());
+
+		// Mock behavior for the error user
+		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
+
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users/roles")
+				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
+				.content(objectMapper.writeValueAsString(noRoleTypeUserReq)))
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 	@Test
@@ -443,6 +504,11 @@ public class UserControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.message").value("Successfully get Google user info."));
+		
+		mockMvc.perform(MockMvcRequestBuilders.get("/api/users/google/userinfo")
+				.header("Authorization", ""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false));
 	}
 	
 	@Test
@@ -468,7 +534,7 @@ public class UserControllerTest {
 	
 	
 	@Test
-	void postGenerateAccessToken() throws Exception {
+	void testGenerateAccessToken() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
 	            .thenReturn(DTOMapper.toUserDTO(testUser));
 
@@ -487,10 +553,38 @@ public class UserControllerTest {
 	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
 	            .andExpect(jsonPath("$.success").value(true))
 	            .andExpect(jsonPath("$.message").value("Access token generated successfully."));  
+	    
+	    userRequest.setEmail("");
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isBadRequest())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(false));
+	}
+	
+	@Test
+	void testGenerateAccessTokenError() throws Exception {
+	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
+	            .thenReturn(DTOMapper.toUserDTO(testUser));
+
+	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
+	            any(UserDTO.class),  // Allow any UserDTO object
+	            anyString(),         // Allow any string message
+	            any(AuditLogRequest.class) // Allow any AuditLogRequest object
+	        )).thenReturn(ResponseEntity.status(HttpStatus.OK).build()); // Return a mocked response (OK)
+
+	    
+	    mockMvc.perform(MockMvcRequestBuilders.post("/api/users/accessToken")
+	            .contentType(MediaType.APPLICATION_JSON)
+	            .content(objectMapper.writeValueAsString(userRequest)))
+	            .andExpect(status().isUnauthorized())
+	            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+	            .andExpect(jsonPath("$.success").value(false));
 	}
 
 	@Test
-	void postGenerateAccessToken_UserNotFound() throws Exception {
+	void GenerateAccessToken_UserNotFound() throws Exception {
 	    when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(null);
 	    
 	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
