@@ -702,7 +702,7 @@ public class UserController {
 				: refreshToken;
 
 		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, newAccessToken, false, 1);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie("refresh_token", newRefreshToken, true, 1);
+		ResponseCookie refreshTokenCookie = cookieUtils.createCookie(REFRESH_TOKEN_COOKIE, newRefreshToken, true, 1);
 
 		// Add cookie to headers
 		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
