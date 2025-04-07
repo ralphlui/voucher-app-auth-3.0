@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,8 +19,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
@@ -58,8 +62,13 @@ public class UserServiceTest {
 	@MockBean
 	private PasswordEncoder passwordEncoder;
 
-	@MockBean
+	@Mock
 	private EncryptionUtils encryptionUtils;
+
+	
+
+	@Value("${frontend.url}")
+	private String frontEndUrl = "https://example.com";
 
 	private static User user;
 
@@ -285,5 +294,49 @@ public class UserServiceTest {
 					exception.getMessage());
 		}
 	}
+	
+	 @Test
+	    void testCreateUserwithGoogleProvider_success() throws Exception {
+	        // Given
+	        UserRequest request = new UserRequest();
+	        request.setEmail("google@example.com");
+	        request.setUsername("googleuser");
+	        request.setPassword("anyPassword");
+	        request.setAuthProvider(AuthProvider.GOOGLE);
+	        request.setRole(RoleType.CUSTOMER);
+
+	        when(passwordEncoder.encode(toString())).thenReturn("encoded");
+	        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+	        // When
+	        UserDTO result = userService.createUser(request);
+
+	        // Then
+	        assertNotNull(result);
+	        assertEquals("google@example.com", result.getEmail());
+	        verify(userRepository).save(any(User.class));
+	        // ensure email verification is not sent
+	    }
+
+	    @Test
+	    void testCreateUserSaveFails_throwsException() {
+	        // Given
+	        UserRequest request = new UserRequest();
+	        request.setEmail("fail@example.com");
+	        request.setUsername("failuser");
+	        request.setPassword("password");
+	        request.setAuthProvider(AuthProvider.NATIVE);
+	        request.setRole(RoleType.CUSTOMER);
+
+	        when(passwordEncoder.encode(toString())).thenReturn("encoded");
+	        when(userRepository.save(any(User.class))).thenReturn(null);
+
+	        // Then
+	        Exception exception = assertThrows(Exception.class, () -> {
+	            userService.createUser(request);
+	        });
+
+	        assertTrue(exception.getMessage().contains("User registration is not successful"));
+	    }
 
 }
