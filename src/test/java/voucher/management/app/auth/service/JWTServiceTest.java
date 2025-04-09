@@ -8,15 +8,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 import voucher.management.app.auth.configuration.JWTConfig;
-import voucher.management.app.auth.entity.User;
-import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.JWTService;
 import voucher.management.app.auth.service.impl.UserService;
