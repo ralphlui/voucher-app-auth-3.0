@@ -8,13 +8,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test; 
 import org.mockito.InjectMocks;
-import org.mockito.Mock; 
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -104,7 +106,27 @@ class OTPControllerTest {
                 .content(objectMapper.writeValueAsString(userRequest)))
                 .andExpect(status().isOk()).andDo(print());
     }
-    
+
+	@Test
+	void testGenerateOtpInvalidInput() throws Exception {
+		UserRequest userRequest = new UserRequest();
+		userRequest.setEmail("test@example.com");
+		userRequest.setOtp("123456");
+		ValidationResult invalidResult = new ValidationResult();
+		invalidResult.setValid(false);
+		invalidResult.setUserId("userId123");
+		invalidResult.setUserName("testuser");
+
+		ResponseEntity<APIResponse<UserDTO>> badRequestResponse = ResponseEntity.badRequest().body(null);
+
+		when(userValidationStrategy.validateObject("test@example.com")).thenReturn(invalidResult);
+		when(apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(eq(invalidResult), anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(badRequestResponse);
+
+		mockMvc.perform(post("/api/users/otp/generate").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest))).andExpect(status().isBadRequest())
+				.andDo(print());
+	}
  
     
     @Test
@@ -157,8 +179,94 @@ class OTPControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
     }
+    
+    
+    @Test
+    public void testValidateOtpInvalidOtp() throws Exception {
+        UserRequest request = new UserRequest();
+        request.setEmail("test@example.com");
+        request.setOtp("000000");
+
+        ValidationResult validationResult = new ValidationResult();
+        validationResult.setValid(true);
+        validationResult.setUserId("userId123");
+        validationResult.setUserName("testuser");
+
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUsername("testUser");
+        userDTO.setEmail("test@example.com");
+        userDTO.setUserID("123");
+
+        Mockito.when(userValidationStrategy.validateObject(anyString())).thenReturn(validationResult);
+        Mockito.when(otpService.validateOTP(anyString(), anyString())).thenReturn(false);
+        Mockito.when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(userDTO);
+
+        APIResponse<UserDTO> failedResponse = new APIResponse<UserDTO>(false, "OTP expired or incorrect", 0, null);
+        Mockito.when(apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(new org.springframework.http.ResponseEntity<>(failedResponse, HttpStatus.BAD_REQUEST));
+
+        mockMvc.perform(post("/api/users/otp/validate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("OTP expired or incorrect"));
+    }
+    
+	@Test
+	void testValidateOtpInvalidInput() throws Exception {
+		UserRequest userRequest = new UserRequest();
+		userRequest.setEmail("test@example.com");
+		userRequest.setOtp("123456");
+		ValidationResult invalidResult = new ValidationResult();
+		invalidResult.setValid(false);
+		invalidResult.setUserId("userId123");
+		invalidResult.setUserName("testuser");
+
+		ResponseEntity<APIResponse<UserDTO>> badRequestResponse = ResponseEntity.badRequest().body(null);
+
+		when(userValidationStrategy.validateObject("test@example.com")).thenReturn(invalidResult);
+		when(apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(eq(invalidResult), anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(badRequestResponse);
+
+		mockMvc.perform(post("/api/users/otp/validate").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest))).andExpect(status().isBadRequest())
+				.andDo(print());
+	}
 
 
+	  @Test
+	    public void testValidateOtpSuccess() throws Exception {
+	        UserRequest request = new UserRequest();
+	        request.setEmail("test@example.com");
+	        request.setOtp("123456");
+
+	        ValidationResult validationResult = new ValidationResult();
+	        validationResult.setValid(true);
+	        validationResult.setUserId("123");
+	        validationResult.setUserName("testuser");
+	        
+	        UserDTO userDTO = new UserDTO();
+	        userDTO.setUsername("testUser");
+	        userDTO.setEmail("test@example.com");
+	        userDTO.setUserID("123");
+	        HttpHeaders headers = new HttpHeaders();
+
+	        Mockito.when(userValidationStrategy.validateObject(anyString())).thenReturn(validationResult);
+	        Mockito.when(otpService.validateOTP(anyString(), anyString())).thenReturn(true);
+	        Mockito.when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(userDTO);
+	        Mockito.when(cookieUtils.createCookies(any(), any(), any(), any())).thenReturn(headers);
+
+	        // Mock APIResponse handling
+	        APIResponse<UserDTO> response = new APIResponse<UserDTO>(true, "OTP is valid.", 1, userDTO);
+	        Mockito.when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), any(), any(), any(), any(), any(), any(), any()))
+	                .thenReturn(new org.springframework.http.ResponseEntity<>(response, headers, HttpStatus.OK));
+
+	        mockMvc.perform(post("/api/users/otp/validate")
+	                        .contentType(MediaType.APPLICATION_JSON)
+	                        .content(objectMapper.writeValueAsString(request)))
+	                .andExpect(status().isOk())
+	                .andExpect(jsonPath("$.message").value("OTP is valid."));
+	    }
     
 }
 
