@@ -15,8 +15,6 @@ import org.springframework.data.redis.core.ValueOperations;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 
 import voucher.management.app.auth.configuration.AWSConfig;
-import voucher.management.app.auth.dto.UserRequest;
-import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.service.impl.OTPService;
 import voucher.management.app.auth.utility.GeneralUtility;
 import voucher.management.app.auth.utility.AmazonSES;

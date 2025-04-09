@@ -337,8 +337,7 @@ public class UserService implements IUserService  {
 		    logger.error("Error occurred while checking specific active user by email", e);		     
 		    throw e;
 
-		}
-		
+		}	
 
 	}
 	

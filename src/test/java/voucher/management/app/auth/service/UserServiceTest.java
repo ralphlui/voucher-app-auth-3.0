@@ -1,11 +1,15 @@
 package voucher.management.app.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +26,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -33,7 +38,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
+
 import jakarta.transaction.Transactional;
+import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
@@ -42,6 +50,7 @@ import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.UserService;
+import voucher.management.app.auth.utility.AmazonSES;
 import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
@@ -53,6 +62,7 @@ public class UserServiceTest {
 
 	private static List<User> mockUsers = new ArrayList<>();
 
+	@Spy
 	@InjectMocks
 	private UserService userService;
 
@@ -64,6 +74,15 @@ public class UserServiceTest {
 
 	@Mock
 	private EncryptionUtils encryptionUtils;
+	
+	@Mock
+    private AWSConfig awsConfig;
+
+    @Mock
+    private AmazonSimpleEmailService amazonSimpleEmailService;
+    
+    @Mock
+    private AmazonSES amazonSES;
 
 	
 
@@ -117,6 +136,18 @@ public class UserServiceTest {
 		assertEquals(mockUsers.get(0).getEmail(), userDTOList.get(0).getEmail());
 
 	}
+	
+
+    @Test
+    void testFindActiveUsersexceptionThrown() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Mockito.when(userRepository.findActiveUserList(true, true, pageable))
+               .thenThrow(new RuntimeException("Database error"));
+
+        assertThrows(RuntimeException.class, () -> {
+            userService.findActiveUsers(pageable);
+        });
+    }
 
 	@Test
 	void createUser() throws Exception  {
@@ -140,6 +171,49 @@ public class UserServiceTest {
 
 		assertEquals(user.getEmail(), result.getEmail());
 	}
+	
+	
+	@Test
+    void testLoginUserInvalidPassword() {
+        // Arrange
+        String email = "user@example.com";
+        String rawPassword = "wrongPassword";
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword("encodedPassword");
+
+        when(userRepository.findByEmailAndStatus(email, true, true)).thenReturn(user);
+        when(passwordEncoder.matches(rawPassword, "encodedPassword")).thenReturn(false);
+
+        // Act & Assert
+        assertThrows(UserNotFoundException.class, () -> userService.loginUser(email, rawPassword));
+        verify(passwordEncoder).matches(rawPassword, "encodedPassword");
+    }
+
+    @Test
+    void testLoginUser_UserNotFound() {
+        // Arrange
+        String email = "missing@example.com";
+        when(userRepository.findByEmailAndStatus(email, true, true)).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(UserNotFoundException.class, () -> userService.loginUser(email, "anyPassword"));
+        verify(userRepository).findByEmailAndStatus(email, true, true);
+        verify(passwordEncoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    void testLoginUserExceptionHandling() {
+        // Arrange
+        String email = "error@example.com";
+        when(userRepository.findByEmailAndStatus(email, true, true))
+            .thenThrow(new RuntimeException("DB error"));
+
+        // Act & Assert
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.loginUser(email, "password"));
+        assertEquals("DB error", ex.getMessage());
+    }
 
 	@Test
 	void verifyUser() throws Exception{
@@ -169,6 +243,32 @@ public class UserServiceTest {
 		assertThat(updatedUser.getUsername().equals("Admin")).isTrue();
 
 	}
+	
+	@Test
+	void testUpdateUserUserNotFound() {
+
+		UserRequest request = new UserRequest();
+		request.setUserId("nonexistent");
+
+		when(userRepository.findByUserId("nonexistent")).thenReturn(null);
+
+		assertThrows(UserNotFoundException.class, () -> userService.update(request));
+		verify(userRepository).findByUserId("nonexistent");
+	}
+	
+
+	@Test
+	void testUpdateUserExceptionHandling() {
+
+		UserRequest request = new UserRequest();
+		request.setUserId("user123");
+
+		when(userRepository.findByUserId("user123")).thenThrow(new RuntimeException("DB down"));
+
+		Exception exception = assertThrows(RuntimeException.class, () -> userService.update(request));
+		assertEquals("DB down", exception.getMessage());
+	}
+	
 
 	@Test
 	void testFindByEmailAndStatus() {
@@ -190,6 +290,32 @@ public class UserServiceTest {
 		assertThat(updatedUser.getEmail().equals("useradmin@gmail.com")).isTrue();
 
 	}
+	
+	
+	@Test
+    void testResetPasswordUserNotFound() {
+        // Arrange
+        String userId = "missingUser";
+
+        when(userService.findByUserIdAndStatus(userId, true, true)).thenReturn(null);
+
+        // Act & Assert
+        assertThrows(UserNotFoundException.class, () -> userService.resetPassword(userId, "somePass"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void testResetPasswordExceptionHandling() {
+        // Arrange
+        String userId = "user123";
+
+        when(userService.findByUserIdAndStatus(userId, true, true))
+            .thenThrow(new RuntimeException("Unexpected error"));
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> userService.resetPassword(userId, "pass"));
+        assertEquals("Unexpected error", exception.getMessage());
+    }
 
 	@Test
 	void checkSpecificActiveUser() {
@@ -200,6 +326,32 @@ public class UserServiceTest {
 		assertThat(activeUser.getEmail().equals(user.getEmail())).isTrue();
 
 	}
+	
+	@Test
+    void testCheckSpecificActiveUserUserDoesNotExistThrowsException() {
+       
+        String userId = "unknownUser";
+        when(userRepository.findByUserIdAndStatus(userId, true, true)).thenReturn(null);
+
+       
+        assertThrows(UserNotFoundException.class, () -> {
+            userService.checkSpecificActiveUser(userId);
+        });
+    }
+
+    @Test
+    void testCheckSpecificActiveUserUnexpectedExceptionThrowsOriginalException() {
+       
+        String userId = "anyUser";
+        when(userRepository.findByUserIdAndStatus(userId, true, true)).thenThrow(new RuntimeException("DB error"));
+
+       
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            userService.checkSpecificActiveUser(userId);
+        });
+
+        assertEquals("DB error", exception.getMessage());
+    }
 
 
 	@Test
@@ -215,6 +367,22 @@ public class UserServiceTest {
 		assertEquals("UserAdmin", updatedUser.getUsername());
 		assertEquals(RoleType.CUSTOMER, updatedUser.getRole());
 	}
+
+	@Test
+	void testUpdateRoleByUserUnexpectedException() {
+
+		String userId = "123";
+		RoleType newRole = RoleType.ADMIN;
+
+		when(userRepository.findByUserId(userId)).thenThrow(new RuntimeException("DB failure"));
+
+		Exception exception = assertThrows(RuntimeException.class, () -> {
+			userService.updateRoleByUser(userId, newRole);
+		});
+
+		assertTrue(exception.getMessage().contains("Failed to update user role"));
+		assertNotNull(exception.getCause());
+	}
 	
 	@Test
 	void checkSpecificActiveUserByEmail() throws Exception {
@@ -226,6 +394,33 @@ public class UserServiceTest {
 		assertThat(activeUser.getEmail()).isEqualTo(user.getEmail());
 
 
+	}
+
+	@Test
+	void testCheckSpecificActiveUserByEmailUserNotFound() {
+		
+		String email = "notfound@example.com";
+
+		when(userRepository.findByEmailAndStatus(email, true, true)).thenReturn(null);
+
+		
+		assertThrows(UserNotFoundException.class, () -> {
+			userService.checkSpecificActiveUserByEmail(email);
+		});
+	}
+
+	@Test
+	void testCheckSpecificActiveUserByEmail_ExceptionHandling() {
+		
+		String email = "error@example.com";
+
+		when(userRepository.findByEmailAndStatus(email, true, true)).thenThrow(new RuntimeException("Database error"));
+
+		Exception exception = assertThrows(RuntimeException.class, () -> {
+			userService.checkSpecificActiveUserByEmail(email);
+		});
+
+		assertEquals("Database error", exception.getMessage());
 	}
 	
 	@Test
@@ -338,5 +533,46 @@ public class UserServiceTest {
 
 	        assertTrue(exception.getMessage().contains("User registration is not successful"));
 	    }
+	    
+
+	    @Test
+	    void testSendVerificationEmail_ExceptionHandling() {
+	        // Arrange
+	        User user = new User();
+	        user.setUsername("Test");
+	        user.setEmail("fail@example.com");
+	        user.setVerificationCode("failcode");
+
+	        when(awsConfig.sesClient()).thenThrow(new RuntimeException("SES client error"));
+
+	        // Act & Assert: Should not throw, just log error
+	        assertDoesNotThrow(() -> userService.sendVerificationEmail(user));
+	    }
+
+		@Test
+		void testFindByEmail_userExists() {
+			String email = "test@example.com";
+			User mockUser = new User();
+			mockUser.setUserId("123");
+			mockUser.setEmail(email);
+
+			Mockito.when(userRepository.findByEmail(email)).thenReturn(mockUser);
+
+			User result = userService.findByEmail(email);
+
+			assertNotNull(result);
+			assertEquals(email, result.getEmail());
+		}
+
+		@Test
+		void testFindByEmail_userNotFound() {
+			String email = "nonexistent@example.com";
+
+			Mockito.when(userRepository.findByEmail(email)).thenReturn(null);
+
+			User result = userService.findByEmail(email);
+
+			assertNull(result);
+		}
 
 }

@@ -7,6 +7,7 @@ import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -28,7 +29,9 @@ import static org.mockito.Mockito.*;
 
 public class JWTServiceTest {
 
+	@InjectMocks
 	private JWTService jwtService;
+	
 	private JWTConfig jwtConfig;
 	private ApplicationContext context;
 
@@ -37,7 +40,7 @@ public class JWTServiceTest {
 	@InjectMocks
 	private UserService userService;
 
-	@InjectMocks
+	@Mock
 	private UserRepository userRepository;
 
 	// Control flag per test
@@ -116,4 +119,20 @@ public class JWTServiceTest {
 		String userId = jwtService.extractUserIdAllowExpiredToken(expiredToken);
 		assertEquals("expiredUser", userId);
 	}
+	
+	
+
+    @Test
+    void testExtractUserNameFromExpiredToken() throws Exception {
+        // Simulate ExpiredJwtException
+    	Date now = new Date();
+		Date issuedAt = new Date(now.getTime() - 60 * 60 * 1000); // 1 hour ago
+		Date expiration = new Date(now.getTime() - 30 * 60 * 1000); // 30 mins ago
+
+		String expiredToken = Jwts.builder().subject("expiredUser").claim(JWTService.CLAIM_USERNAME, "ExpiredUser")
+				.issuedAt(issuedAt).expiration(expiration).signWith(keyPair.getPrivate()).compact();
+
+		String userId = jwtService.extractUserNameAllowExpiredToken(expiredToken);
+		assertEquals("ExpiredUser", userId);
+    }
 }
