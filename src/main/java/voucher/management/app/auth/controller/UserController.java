@@ -96,7 +96,7 @@ public class UserController {
 			List<UserDTO> userDTOList = firstEntry.getValue();
 
 			logger.info("totalRecord: {}", totalRecord);
-			logger.info("userDTO List: {}", userDTOList);
+			logger.info("userDTO List");
 
 			if (!userDTOList.isEmpty()) {
 				message = "Successfully get all active verified user.";

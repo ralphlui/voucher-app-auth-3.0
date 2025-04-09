@@ -93,7 +93,7 @@ public class OTPController {
 
 		} catch (Exception e) {
 			message = "OTP code generation failed.";
-			logger.error("generateOtp Error: " + message);
+			logger.error("generateOtp Error: {}", message);
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,
@@ -145,7 +145,7 @@ public class OTPController {
 		} catch (Exception e) {
 			message = "OTP code validation failed.";
 
-			logger.error("validateOtp Error: " + message);
+			logger.error("validateOtp Error: {}", message);
 			HttpStatusCode htpStatuscode = e instanceof UserNotFoundException ? HttpStatus.NOT_FOUND
 					: HttpStatus.INTERNAL_SERVER_ERROR;
 			return apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(e, htpStatuscode, activityType,

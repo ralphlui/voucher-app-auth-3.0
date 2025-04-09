@@ -60,19 +60,10 @@ public class AuditLogService implements IAuditService {
 		ObjectMapper objectMapper = new ObjectMapper();
 		AuditLogRequest logRequest = new AuditLogRequest(statusCode, userId, username,
 				activityType, activityDescription, requestActionEndpoint, responseStatus, requestType, remarks);
-		/*logRequest.setStatusCode(statusCode);
-		logRequest.setUserId(userId);
-		logRequest.setUsername(username);
-		logRequest.setActivityType(activityType);
-		logRequest.setActivityDescription(activityDescription);
-		logRequest.setRequestActionEndpoint(requestActionEndpoint);
-		logRequest.setResponseStatus(responseStatus);
-		logRequest.setRequestType(requestType);
-		logRequest.setRemarks(remarks);*/
 		try {
 
 			String auditLogString = objectMapper.writeValueAsString(logRequest);
-			logger.info("Serialized JSON: {}", auditLogString);
+			logger.info("Serialized auditLogString JSON");
 
 			byte[] messageBytes = auditLogString.getBytes(StandardCharsets.UTF_8);
 			int messageSize = messageBytes.length;
