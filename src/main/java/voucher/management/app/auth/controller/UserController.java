@@ -661,9 +661,13 @@ public class UserController {
 			UserDTO userDTO = googleAuthService.verifyAndGetUserInfo(token);
 			if (userDTO != null && userDTO.getEmail() != null) {
 				message = "Successfully get Google user info.";
-				auditReq.setActivityDescription(message);
-				
-				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+			
+				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(), userDTO.getEmail(),
+						userDTO.getUserID(), null);
+				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
+						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
+				//auditReq.setActivityDescription(message);
+				//return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
 				
 				 
 			} else {
