@@ -5,6 +5,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -21,8 +22,6 @@ public class PasswordValidatorService {
 	private static final Pattern UPPER_CASE_PATTERN = Pattern.compile("[A-Z]");
 	private static final Pattern LOWER_CASE_PATTERN = Pattern.compile("[a-z]");
 	private static final Pattern DIGIT_PATTERN = Pattern.compile("\\d");
-
-	private static Set<String> DICTIONARY_WORDS;
 
 	public static boolean containsNonAlphanumericCharacters(String password) {
 		return NON_ALPHANUMERIC_PATTERN.matcher(password).find();
@@ -70,37 +69,48 @@ public class PasswordValidatorService {
 	}
 
 	public static boolean containsDictionaryWord(String password) {
+		Set<String> dictionaryWords = loadDictionary();
+		List<String> words = extractWordsFromPassword(password);
 
-		DICTIONARY_WORDS = loadDictionary();
+		if (dictionaryWords != null) {
+			return containsAnyDictionaryWord(words, dictionaryWords);
+		}
 
-		final ArrayList<String> words = new ArrayList<String>();
+		return false;
+	}
+
+	private static List<String> extractWordsFromPassword(String password) {
+		List<String> words = new ArrayList<>();
 		String[] parts = password.split("[^A-Za-z]");
+
 		for (String str : parts) {
 			if (str.length() > 3) {
-				IntStream.range(0, str.length()).collect(ArrayList::new, (objects, i) -> {
-					String suffix = str.substring(i);
-					IntStream.rangeClosed(0, suffix.length()).forEach(j -> {
-						String suffixCut = suffix.substring(0, j);
-						if (suffixCut.length() > 3) {
-							words.add(suffixCut);
-						}
-					});
-				}, (objects, i) -> {
-				});
+				addSuffixesToWords(str, words);
 			}
 		}
-		if (DICTIONARY_WORDS != null) {
-			for (String word : words) {
+		return words;
+	}
 
-				for (String dictionaryWord : DICTIONARY_WORDS) {
+	private static void addSuffixesToWords(String str, List<String> words) {
+		IntStream.range(0, str.length()).forEach(i -> {
+			String suffix = str.substring(i);
+			IntStream.rangeClosed(0, suffix.length()).forEach(j -> {
+				String suffixCut = suffix.substring(0, j);
+				if (suffixCut.length() > 3) {
+					words.add(suffixCut);
+				}
+			});
+		});
+	}
 
-					if (word.equalsIgnoreCase(dictionaryWord)) {
-						return true;
-					}
+	private static boolean containsAnyDictionaryWord(List<String> words, Set<String> dictionaryWords) {
+		for (String word : words) {
+			for (String dictionaryWord : dictionaryWords) {
+				if (word.equalsIgnoreCase(dictionaryWord)) {
+					return true;
 				}
 			}
 		}
-
 		return false;
 	}
 
