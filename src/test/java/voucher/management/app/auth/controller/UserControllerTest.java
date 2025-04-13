@@ -1,6 +1,5 @@
 package voucher.management.app.auth.controller;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,7 +29,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -42,8 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.jsonwebtoken.Claims;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
@@ -51,6 +48,7 @@ import voucher.management.app.auth.dto.ValidationResult;
 import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
+import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.*;
 import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
@@ -60,6 +58,7 @@ import voucher.management.app.auth.utility.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 
 @SpringBootTest
@@ -87,7 +86,7 @@ public class UserControllerTest {
 	@MockBean
 	private JWTService jwtService;
 
-	@Mock
+	@MockBean
 	private CookieUtils cookieUtils;
 
 	@MockBean
@@ -103,7 +102,7 @@ public class UserControllerTest {
 	private UserValidationStrategy userValidationStrategy;
 
 	 // Control flag per test
-    static ThreadLocal<String> pentestValue = ThreadLocal.withInitial(() -> "false");
+    static ThreadLocal<String> pentestValue = ThreadLocal.withInitial(() -> "true");
 
 	@DynamicPropertySource
 	static void dynamicProperties(DynamicPropertyRegistry registry) {
@@ -177,6 +176,7 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.message").value("No Active User List.")).andDo(print());
 
 	}
+	
 
 	@Test
 	void testUserLogin() throws Exception {
@@ -186,6 +186,11 @@ public class UserControllerTest {
 
 		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
 				.thenReturn(DTOMapper.toUserDTO(testUser));
+		
+		   HttpHeaders headers = new HttpHeaders();
+	       headers.add("Set-Cookie", "access_token=abc123");
+	       when(cookieUtils.buildAuthHeadersWithCookies(anyString(), anyString(), anyString(), anyString())).thenReturn(headers);
+
 		
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
@@ -197,13 +202,33 @@ public class UserControllerTest {
 
 		UserRequest userNotFoundRequest = new UserRequest(errorUser.getEmail(), "Pwd@21212");
 
-		 pentestValue.set("false"); 
+		pentestValue.set("false"); 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(userNotFoundRequest)))
 				.andExpect(MockMvcResultMatchers.status().isNotFound())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.message").value("User account not found."))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
+
+	}
+	
+	@Test
+	void testUserLoginPenTestDisable() throws Exception {
+		pentestValue.set("false");
+		testUser.setVerified(true);
+		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
+		Mockito.when(userService.findByEmail(userRequest.getEmail())).thenReturn(testUser);
+
+		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
+				.thenReturn(DTOMapper.toUserDTO(testUser));
+
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
+				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
+				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
+				.andExpect(jsonPath("$.data.username").value(userRequest.getUsername()))
+				.andExpect(jsonPath("$.data.email").value(userRequest.getEmail()))
+				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString())).andDo(print());
 
 	}
 	
@@ -356,11 +381,35 @@ public class UserControllerTest {
 
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
-		mockMvc.perform(MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/active").header("Authorization", authorizationHeader)
 				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
+	
+	@Test
+	void checkSpecificActiveUserUserNotFoundException() throws Exception {
+		String userId = "123";
+		String token = "Bearer test.jwt.token";
+
+		ValidationResult validResult = new ValidationResult();
+		validResult.setValid(true);
+		validResult.setUserId(userId);
+		validResult.setUserName("John");
+		validResult.setMessage("");
+
+		when(userValidationStrategy.validateObjectByUseId(eq(userId))).thenReturn(validResult);
+		when(userService.checkSpecificActiveUser(eq(userId))).thenThrow(new UserNotFoundException("User not found"));
+
+		when(apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(any(Exception.class),
+				eq(HttpStatus.NOT_FOUND), any(), any(), any(), any(), any(), any()))
+				.thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/active").header("Authorization", token)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"userId\": \"123\"}"))
+				.andExpect(status().isNotFound());
+	}
+	
 
 	@Test
 	void testUserLogout() throws Exception {
@@ -372,42 +421,84 @@ public class UserControllerTest {
 				.header("Authorization", authorizationHeader).content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 
-	}
-
+	}	
+	
 	@Test
-	void testRefreshToken() throws Exception {
-		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken"))
-				.andExpect(jsonPath("$.success").value(false))
-				.andExpect(jsonPath("$.message").value("Refresh token is missing")).andDo(print());
+    void testRefreshTokenSuccess() throws Exception {
+        String refreshToken = "mockRefreshToken";
+        String userId = "user123";
+        String username = "testuser";
+        String email = "test@example.com";
 
-		MockHttpServletRequest request = new MockHttpServletRequest();
+        // Mock user and refresh token
+        User user = new User();
+        user.setUserId(userId);
+        user.setUsername(username);
+        user.setEmail(email);
 
-		String cookieName = "refresh_token";
-		String refreshToken = "mockRefreshToken";
-		Optional<String> cookieValue = Optional.ofNullable(refreshToken);
+        RefreshToken token = new RefreshToken();
+        token.setToken(refreshToken);
+        token.setUser(user);
+        token.setRevoked(false);
+        token.setExpiryDate(LocalDateTime.now().plusHours(1));
 
-		when(cookieUtils.getTokenFromCookies(request, cookieName)).thenReturn(cookieValue);
-		mockMvc.perform(
-				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
-				.andExpect(jsonPath("$.success").value(false))
-				.andExpect(jsonPath("$.message").value("Invalid or expired refresh token")).andDo(print());
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Set-Cookie", "access_token=mockAccessToken");
 
-		RefreshToken savedRefreshToken = new RefreshToken();
-		savedRefreshToken.setToken(refreshToken);
-		savedRefreshToken.setUser(testUser);
-		savedRefreshToken.setExpiryDate(LocalDateTime.now().plusHours(1));
-		savedRefreshToken.setRevoked(false);
-		when(refreshTokenService.findRefreshToken(refreshToken)).thenReturn(savedRefreshToken);
-		when(refreshTokenService.verifyRefreshToken(savedRefreshToken)).thenReturn(true);
+        when(cookieUtils.getTokenFromCookies((HttpServletRequest) any(HttpServletRequest.class), eq("refresh_token")))
+                .thenReturn(Optional.of(refreshToken));
 
-		Claims mockClaims = mock(Claims.class);
-		when(jwtService.extractAllClaims(refreshToken)).thenReturn(mockClaims);
+        when(refreshTokenService.findRefreshToken(refreshToken)).thenReturn(token);
+        when(refreshTokenService.verifyRefreshToken(token)).thenReturn(true);
+        when(cookieUtils.buildAuthHeadersWithCookies(username, email, userId, refreshToken)).thenReturn(headers);
 
-		mockMvc.perform(
-				MockMvcRequestBuilders.post("/api/users/refreshToken").cookie(new Cookie(cookieName, refreshToken)))
-				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.message").value("Token refresh is successful.")).andDo(print());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("Set-Cookie"));
+    }
+	
+	@Test
+	void testRefreshTokenMissing() throws Exception {
+		when(cookieUtils.getTokenFromCookies(any(HttpServletRequest.class), eq("refresh_token")))
+				.thenReturn(Optional.empty());
+
+		when(apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(any(), any(), any(), any(), any(),
+				any(), any(), any())).thenReturn(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken")).andExpect(status().isBadRequest());
 	}
+	
+	@Test
+	void testRefreshTokenInvalid() throws Exception {
+		String refreshToken = "invalidToken";
+
+		when(cookieUtils.getTokenFromCookies(any(HttpServletRequest.class), eq("refresh_token")))
+				.thenReturn(Optional.of(refreshToken));
+
+		when(refreshTokenService.findRefreshToken(refreshToken)).thenReturn(null);
+
+		when(apiResponseStrategy.handleResponseListAndsendAuditLogForJWTFailure(any(), any(), any(), any(), any(),
+				any(), any(), any())).thenReturn(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
+
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken")).andExpect(status().isUnauthorized());
+	}
+	  
+		@Test
+		void testRefreshTokenException() throws Exception {
+			String refreshToken = "someToken";
+
+			when(cookieUtils.getTokenFromCookies(any(HttpServletRequest.class), eq("refresh_token")))
+					.thenReturn(Optional.of(refreshToken));
+
+			when(refreshTokenService.findRefreshToken(refreshToken)).thenThrow(new RuntimeException("DB error"));
+
+			when(apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(any(), any(), any(), any(), any(),
+					any(), any(), any())).thenReturn(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+
+			mockMvc.perform(MockMvcRequestBuilders.post("/api/users/refreshToken"))
+					.andExpect(status().isInternalServerError());
+		}
+	
 
 	@Test
 	void testVerifyToken() throws Exception {
@@ -422,6 +513,7 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.message").value("Token is valid."))
 				.andDo(print());
 	}
+
 
 	@Test
 	 void testUpdatedUserRole() throws Exception {
