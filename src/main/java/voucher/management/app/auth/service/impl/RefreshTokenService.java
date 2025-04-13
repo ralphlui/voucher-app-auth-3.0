@@ -1,13 +1,11 @@
 package voucher.management.app.auth.service.impl;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.Optional;
+import java.util.Base64;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.JwtException;
@@ -25,7 +23,6 @@ public class RefreshTokenService implements IRefreshTokenService {
 
 	private static final Logger logger = LoggerFactory.getLogger(RefreshTokenService.class);
 
-	private final JWTService jwtService;
 	private final UserService userService;
 	private final RefreshTokenRepository refreshTokenRepository;
 
@@ -35,12 +32,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 		String hashedToken = GeneralUtility.hashWithSHA256(token);
 
 		User user = userService.findByUserId(userID);
-		Date expiredDate = jwtService.extractExpiration(token);
-		LocalDateTime localExpiredDateTime = expiredDate.toInstant().atZone(ZoneId.systemDefault()) // Convert to
-																									// system's default
-																									// zone
-				.toLocalDateTime();
-
+		LocalDateTime localExpiredDateTime = LocalDateTime.now().plusHours(24);
 		RefreshToken refreshToken = new RefreshToken();
 		refreshToken.setToken(hashedToken);
 		refreshToken.setLastUpdatedDate(LocalDateTime.now());
@@ -63,21 +55,36 @@ public class RefreshTokenService implements IRefreshTokenService {
 
 		}
 	}
-	
+
 	@Override
-	public Boolean verifyRefreshToken(String refreshToken) throws JwtException, IllegalArgumentException, Exception {
+	public Boolean verifyRefreshToken(RefreshToken refreshToken)
+			throws JwtException, IllegalArgumentException, Exception {
 
-		String hashedToken = GeneralUtility.hashWithSHA256(refreshToken);
-		RefreshToken savedRefreshToken = refreshTokenRepository.findByToken(hashedToken);
+		boolean revoked = refreshToken.isRevoked();
+		boolean expired = refreshToken.getExpiryDate().isBefore(LocalDateTime.now());
 
-		if (savedRefreshToken == null || savedRefreshToken.isRevoked()
-				|| savedRefreshToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-
-			Optional.ofNullable(savedRefreshToken).ifPresent(token -> updateRefreshToken(refreshToken, true));
-
+		if (revoked || expired) {
+			if (expired && !revoked) {
+				updateRefreshToken(refreshToken.getToken(), true);
+			}
 			throw new UserNotFoundException("Invalid Refresh Token.");
 		}
-		UserDetails userDetails = jwtService.getUserDetail(refreshToken);
-		return jwtService.validateToken(refreshToken, userDetails);
+
+		return true;
+	}
+
+	@Override
+	public RefreshToken findRefreshToken(String refreshToken) {
+		String hashedToken = GeneralUtility.hashWithSHA256(refreshToken);
+		return refreshTokenRepository.findByToken(hashedToken);
+	}
+	
+	
+	@Override
+	public String generateOpaqueRefreshToken() {
+		SecureRandom secureRandom = new SecureRandom();
+		byte[] tokenBytes = new byte[32];
+		secureRandom.nextBytes(tokenBytes);
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
 	}
 }

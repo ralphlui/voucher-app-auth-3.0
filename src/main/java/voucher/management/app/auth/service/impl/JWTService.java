@@ -38,7 +38,7 @@ public class JWTService {
 
 
 
-	public String generateToken(String userName, String userEmail, String userID, Boolean isRefreshToken)
+	public String generateToken(String userName, String userEmail, String userID)
 			throws InvalidKeyException, Exception {
 		
 		
@@ -49,7 +49,7 @@ public class JWTService {
 	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  
 	    } // 24 hours for refresh token // 15 minutes for normal token
 	    else {
-	        tokenValidDuration = System.currentTimeMillis() + (isRefreshToken ? 24 * 60 * 60 * 1000 : 15 * 60 * 1000);
+	        tokenValidDuration = System.currentTimeMillis() +  15 * 60 * 1000;
 	    }
 
 		

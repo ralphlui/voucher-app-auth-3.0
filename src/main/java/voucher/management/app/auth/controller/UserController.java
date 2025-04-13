@@ -16,13 +16,12 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.security.InvalidKeyException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.dto.*;
+import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.AuditLogInvalidUser;
 import voucher.management.app.auth.enums.AuditLogResponseStatus;
@@ -181,7 +180,7 @@ public class UserController {
 			message = userDTO.getEmail() + " login successfully";
 
 			if (pentestEnable.equalsIgnoreCase("true")) {
-				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(), userDTO.getEmail(),
+				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
@@ -395,7 +394,7 @@ public class UserController {
 
 		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, "", true, 0);
 		ResponseCookie refreshTokenCookie = cookieUtils.createCookie(REFRESH_TOKEN_COOKIE, "", true, 0);
-		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
+		HttpHeaders headers = cookieUtils.createHttpHeader(accessTokenCookie, refreshTokenCookie);
 
 		try {
 			userID = jwtService.extractUserIdAllowExpiredToken(tokenFromCookie);
@@ -455,21 +454,20 @@ public class UserController {
 						auditLogUserName, activityType, activityDesc, apiEndPoint, httpMethod, message);
 
 			}
-			auditLogUserId = jwtService.extractUserIdAllowExpiredToken(refreshToken);
-			auditLogUserName = jwtService.extractUserNameAllowExpiredToken(refreshToken);
+			
+			RefreshToken savedRefreshToken = refreshTokenService.findRefreshToken(refreshToken);
 
-			if (refreshTokenService.verifyRefreshToken(refreshToken)) {
-				Claims claims = jwtService.extractAllClaims(refreshToken);
-				String userid = claims.getSubject();
-				String userName = claims.get("userName", String.class);
-				String userEmail = claims.get("userEmail", String.class);
+			if (savedRefreshToken != null && refreshTokenService.verifyRefreshToken(savedRefreshToken)) {
+				auditLogUserId = savedRefreshToken.getUser().getUserId();
+				auditLogUserName = savedRefreshToken.getUser().getUsername();
+				String userEmail = savedRefreshToken.getUser().getEmail();
 				// Add cookie to headers
-				HttpHeaders headers = createCookies(userName, userEmail, userid, null);
+				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(auditLogUserName, userEmail, auditLogUserId, refreshToken);
 
 				HttpStatus httpStatus = HttpStatus.OK;
 				message = "Token refresh is successful.";
 
-				refreshTokenService.updateRefreshToken(refreshToken, true);
+				refreshTokenService.updateRefreshToken(refreshToken, false);
 				auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), auditLogUserId,
 						auditLogUserName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 				return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.successWithNoData(message));
@@ -524,7 +522,7 @@ public class UserController {
 			auditLogUserId = user.getUserID();
 			auditLogUserName = user.getUsername();
 
-			String accessToken = jwtService.generateToken(user.getUsername(), userEmail, user.getUserID(), false);
+			String accessToken = jwtService.generateToken(user.getUsername(), userEmail, user.getUserID());
 
 			if (accessToken != null) {
 
@@ -693,31 +691,6 @@ public class UserController {
 				auditLogUserName = user.getUsername();
 			}
 		}
-	}
-
-	private HttpHeaders createCookies(String userName, String email, String userid, String refreshToken)
-			throws InvalidKeyException, Exception {
-		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true)
-				: refreshToken;
-
-		ResponseCookie accessTokenCookie = cookieUtils.createCookie(ACCESS_TOKEN_COOKIE, newAccessToken, false, 1);
-		ResponseCookie refreshTokenCookie = cookieUtils.createCookie(REFRESH_TOKEN_COOKIE, newRefreshToken, true, 1);
-
-		// Add cookie to headers
-		HttpHeaders headers = createHttpHeader(accessTokenCookie, refreshTokenCookie);
-		if (refreshToken == null) {
-			refreshTokenService.saveRefreshToken(userid, newRefreshToken);
-		}
-
-		return headers;
-	}
-
-	private HttpHeaders createHttpHeader(ResponseCookie accessTokenCookie, ResponseCookie responseTokenCookie) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-		headers.add(HttpHeaders.SET_COOKIE, responseTokenCookie.toString());
-		return headers;
 	}
 
 	private void retrieveUserIDAndNameFromToken(String authorizationHeader)

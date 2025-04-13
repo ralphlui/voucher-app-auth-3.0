@@ -2,6 +2,7 @@ package voucher.management.app.auth.utility;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -51,9 +52,9 @@ public class CookieUtils {
                 .findFirst();
     }
 	
-	public HttpHeaders createCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
-		String newAccessToken = jwtService.generateToken(userName, email, userid, false);
-		String newRefreshToken = refreshToken == null ? jwtService.generateToken(userName, email, userid, true) : refreshToken;
+	public HttpHeaders buildAuthHeadersWithCookies(String userName, String email, String userid, String refreshToken) throws InvalidKeyException, Exception {	
+		String newAccessToken = jwtService.generateToken(userName, email, userid);
+		String newRefreshToken = Objects.requireNonNullElse(refreshToken, refreshTokenService.generateOpaqueRefreshToken());
 
 		ResponseCookie accessTokenCookie = createCookie("access_token", newAccessToken, false, 1);
 		ResponseCookie refreshTokenCookie = createCookie("refresh_token", newRefreshToken, true, 1);
