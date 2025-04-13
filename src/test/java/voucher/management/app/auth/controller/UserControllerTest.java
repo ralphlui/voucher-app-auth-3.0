@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,11 +47,14 @@ import jakarta.servlet.http.Cookie;
 import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
+import voucher.management.app.auth.dto.ValidationResult;
+import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.repository.UserRepository;
 import voucher.management.app.auth.service.impl.*;
 import voucher.management.app.auth.strategy.impl.APIResponseStrategy;
+import voucher.management.app.auth.strategy.impl.UserValidationStrategy;
 import voucher.management.app.auth.utility.*;
 
 import static org.mockito.Mockito.*;
@@ -94,9 +98,12 @@ public class UserControllerTest {
 
 	@Mock
 	private APIResponseStrategy apiResponseStrategy;
+	
+	@Mock
+	private UserValidationStrategy userValidationStrategy;
 
 	 // Control flag per test
-    static ThreadLocal<String> pentestValue = ThreadLocal.withInitial(() -> "true");
+    static ThreadLocal<String> pentestValue = ThreadLocal.withInitial(() -> "false");
 
 	@DynamicPropertySource
 	static void dynamicProperties(DynamicPropertyRegistry registry) {
@@ -200,26 +207,19 @@ public class UserControllerTest {
 
 	}
 	
-	
 	@Test
-	void testUserLoginForPenTest() throws Exception {
-		testUser.setVerified(true);
-		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
-		Mockito.when(userService.findByEmail(userRequest.getEmail())).thenReturn(testUser);
+	void testLoginUserValidationFail() throws Exception {
+		// Prepare input
+		String jsonRequest = new ObjectMapper().writeValueAsString(userRequest);
 
-		Mockito.when(userService.loginUser(userRequest.getEmail(), userRequest.getPassword()))
-				.thenReturn(DTOMapper.toUserDTO(testUser));
+		// Prepare validation
+		ValidationResult validationResult = new ValidationResult();
+		validationResult.setValid(false);
+		validationResult.setStatus(HttpStatus.BAD_REQUEST);
+		when(userValidationStrategy.validateObject(userRequest.getEmail())).thenReturn(validationResult);
 
-		 pentestValue.set("true"); 
 		mockMvc.perform(MockMvcRequestBuilders.post("/api/users/login").contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(userRequest))).andExpect(MockMvcResultMatchers.status().isOk())
-				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
-				.andExpect(jsonPath("$.message").value(userRequest.getEmail() + " login successfully"))
-				.andExpect(jsonPath("$.data.username").value(userRequest.getUsername()))
-				.andExpect(jsonPath("$.data.email").value(userRequest.getEmail()))
-				.andExpect(jsonPath("$.data.role").value(userRequest.getRole().toString())).andDo(print());
-
-
+				.content(jsonRequest)).andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
 
 
@@ -311,9 +311,8 @@ public class UserControllerTest {
 		String authorizationHeader = "Bearer mock.jwt.token";
 		when(jwtService.extractUserID("mock.jwt.token")).thenReturn(testUser.getUserId());
 
-		mockMvc.perform(MockMvcRequestBuilders.put("/api/users")
-				.contentType(MediaType.APPLICATION_JSON).header("Authorization", authorizationHeader)
-				.content(objectMapper.writeValueAsString(userRequest)))
+		mockMvc.perform(MockMvcRequestBuilders.put("/api/users").contentType(MediaType.APPLICATION_JSON)
+				.header("Authorization", authorizationHeader).content(objectMapper.writeValueAsString(userRequest)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.message").value("User updated successfully."))
 				.andExpect(jsonPath("$.data.username").value(testUser.getUsername()))
@@ -357,9 +356,8 @@ public class UserControllerTest {
 
 		errorUser.setVerified(false);
 		Mockito.when(userService.findByUserId(errorUser.getUserId())).thenReturn(errorUser);
-		mockMvc.perform(
-				MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
-						.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
+		mockMvc.perform(MockMvcRequestBuilders.post("/api/users//active").header("Authorization", authorizationHeader)
+				.contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(errorUser)))
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
@@ -394,7 +392,13 @@ public class UserControllerTest {
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.message").value("Invalid or expired refresh token")).andDo(print());
 
-		when(refreshTokenService.verifyRefreshToken(refreshToken)).thenReturn(true);
+		RefreshToken savedRefreshToken = new RefreshToken();
+		savedRefreshToken.setToken(refreshToken);
+		savedRefreshToken.setUser(testUser);
+		savedRefreshToken.setExpiryDate(LocalDateTime.now().plusHours(1));
+		savedRefreshToken.setRevoked(false);
+		when(refreshTokenService.findRefreshToken(refreshToken)).thenReturn(savedRefreshToken);
+		when(refreshTokenService.verifyRefreshToken(savedRefreshToken)).thenReturn(true);
 
 		Claims mockClaims = mock(Claims.class);
 		when(jwtService.extractAllClaims(refreshToken)).thenReturn(mockClaims);
@@ -538,7 +542,7 @@ public class UserControllerTest {
 	    when(userService.checkSpecificActiveUserByEmail(testUser.getEmail()))
 	            .thenReturn(DTOMapper.toUserDTO(testUser));
 
-	    when(jwtService.generateToken(anyString(), anyString(), anyString(), anyBoolean()))
+	    when(jwtService.generateToken(anyString(), anyString(), anyString()))
 	            .thenReturn("mockAccessToken");
 	    when(apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(
 	            any(UserDTO.class),  // Allow any UserDTO object

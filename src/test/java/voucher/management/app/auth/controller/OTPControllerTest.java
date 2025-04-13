@@ -160,8 +160,8 @@ class OTPControllerTest {
         headers.add(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
         headers.add(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
-        when(jwtService.generateToken(userName, email, userId, false)).thenReturn(accessToken);
-        when(jwtService.generateToken(userName, email, userId, true)).thenReturn(refreshToken);
+        when(jwtService.generateToken(userName, email, userId)).thenReturn(accessToken);
+        when(refreshTokenService.generateOpaqueRefreshToken()).thenReturn(refreshToken);
         when(cookieUtils.createCookie("access_token", accessToken, false, 1)).thenReturn(accessTokenCookie);
         when(cookieUtils.createCookie("refresh_token", refreshToken, true, 1)).thenReturn(refreshTokenCookie);
 
@@ -254,7 +254,7 @@ class OTPControllerTest {
 	        Mockito.when(userValidationStrategy.validateObject(anyString())).thenReturn(validationResult);
 	        Mockito.when(otpService.validateOTP(anyString(), anyString())).thenReturn(true);
 	        Mockito.when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(userDTO);
-	        Mockito.when(cookieUtils.createCookies(any(), any(), any(), any())).thenReturn(headers);
+	        Mockito.when(cookieUtils.buildAuthHeadersWithCookies(any(), any(), any(), any())).thenReturn(headers);
 
 	        // Mock APIResponse handling
 	        APIResponse<UserDTO> response = new APIResponse<UserDTO>(true, "OTP is valid.", 1, userDTO);

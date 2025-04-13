@@ -1,8 +1,19 @@
 package voucher.management.app.auth.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -13,14 +24,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import jakarta.transaction.Transactional;
 import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.RefreshTokenRepository;
 import voucher.management.app.auth.service.impl.JWTService;
 import voucher.management.app.auth.service.impl.RefreshTokenService;
@@ -45,8 +57,8 @@ public class RefreshTokenServiceTest {
 	@InjectMocks
 	private RefreshTokenService refreshTokenService;
 
-	@Mock
-	private GeneralUtility generalUitlity;
+//	@Mock
+//	private GeneralUtility generalUitlity;
 
 	private String userId;
 	private String token;
@@ -55,11 +67,13 @@ public class RefreshTokenServiceTest {
 	private Date expiryDate;
 	private LocalDateTime localExpiryDateTime;
 	private Boolean revoked;
+	private static final String PLAIN_TOKEN = "rawToken123";
+	private static final String HASHED_TOKEN = "hashedToken456";
 
 
 	@BeforeEach
 	void setUp() throws Exception {
-		refreshTokenService = new RefreshTokenService(jwtService, userService, refreshTokenRepository);
+		refreshTokenService = new RefreshTokenService(userService, refreshTokenRepository);
 		userId = "user123";
 		token = "sample.jwt.token";
 		hashedToken = "hashedSampleToken"; // Assume this is the expected hashed value
@@ -73,7 +87,7 @@ public class RefreshTokenServiceTest {
 	}
 
 	@Test
-	void testUpdateRefreshToken_Success() {
+	void testUpdateRefreshTokenSuccess() {
 		// Mock static utility method
 		mockStatic(GeneralUtility.class);
 		when(GeneralUtility.hashWithSHA256(token)).thenReturn(hashedToken);
@@ -82,6 +96,22 @@ public class RefreshTokenServiceTest {
 		assertDoesNotThrow(() -> refreshTokenService.updateRefreshToken(token, revoked));
 
 	}
+
+	@Test
+	void testUpdateRefreshTokenException() {
+		
+		String rawToken = "sample_token";
+
+		when(GeneralUtility.hashWithSHA256(rawToken)).thenThrow(new RuntimeException("Hashing failed"));
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+			refreshTokenService.updateRefreshToken(rawToken, true);
+		});
+
+		assertEquals("Error updating refresh token", exception.getMessage());
+		verify(refreshTokenRepository, never()).updateRefreshToken(anyBoolean(), any(), any());
+	}
+	
 
 	@Test
 	void testSaveRefreshToken_Success() throws Exception {
@@ -98,24 +128,61 @@ public class RefreshTokenServiceTest {
 	}
 
 	@Test
-	void testVerifyRefreshToken_Success() throws Exception {
+	void testValidRefreshTokenShouldReturnTrue() throws Exception {
+		RefreshToken token = new RefreshToken();
+		token.setRevoked(false);
+		token.setExpiryDate(LocalDateTime.now().plusMinutes(10));
 
-		UserDetails userDetails = mock(UserDetails.class);
-		RefreshToken savedRefreshToken = new RefreshToken();
-		savedRefreshToken.setToken(hashedToken);
-		savedRefreshToken.setRevoked(false);
-		savedRefreshToken.setExpiryDate(LocalDateTime.now().plusMinutes(2));
-		String refreshToken = "sample.jwt.token";
+		boolean result = refreshTokenService.verifyRefreshToken(token);
 
-		when(refreshTokenRepository.findByToken(hashedToken)).thenReturn(savedRefreshToken);
-		when(jwtService.getUserDetail(refreshToken)).thenReturn(userDetails);
-		when(jwtService.validateToken(refreshToken, userDetails)).thenReturn(true);
-
-		when(GeneralUtility.hashWithSHA256(refreshToken)).thenReturn(hashedToken);
-
-		// Call the method and verify the result
-		when(refreshTokenService.verifyRefreshToken(refreshToken)).thenReturn(true);
+		assertTrue(result);
 	}
 	
+	@Test
+	void testExpiredNotRevokedShouldCallUpdateAndThrowException() {
+		RefreshToken token = new RefreshToken();
+		token.setRevoked(false);
+		token.setExpiryDate(LocalDateTime.now().minusMinutes(10));
+
+		RefreshTokenService spyService = Mockito.spy(refreshTokenService);
+		doNothing().when(spyService).updateRefreshToken(eq(token.getToken()), eq(true));
+
+		UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
+			spyService.verifyRefreshToken(token);
+		});
+
+		verify(spyService, times(1)).updateRefreshToken(eq(token.getToken()), eq(true));
+		assertEquals("Invalid Refresh Token.", exception.getMessage());
+	}
+	
+	
+	@Test
+	void testFindRefreshToken_ReturnsCorrectToken() {
+		RefreshToken expectedToken = new RefreshToken();
+		expectedToken.setToken(HASHED_TOKEN);
+		Mockito.when(GeneralUtility.hashWithSHA256(PLAIN_TOKEN)).thenReturn(HASHED_TOKEN);
+
+		Mockito.when(refreshTokenRepository.findByToken(HASHED_TOKEN)).thenReturn(expectedToken);
+
+		RefreshToken actualToken = refreshTokenService.findRefreshToken(PLAIN_TOKEN);
+
+		assertNotNull(actualToken);
+		assertEquals(HASHED_TOKEN, actualToken.getToken());
+
+	}
+
+	
+	@Test
+	void testGenerateOpaqueRefreshToken() {
+		String token = refreshTokenService.generateOpaqueRefreshToken();
+
+		assertNotNull(token);
+		assertFalse(token.isEmpty());
+
+		assertTrue(token.matches("^[A-Za-z0-9_-]+$"));
+
+		int minExpectedLength = 43;
+		assertTrue(token.length() >= minExpectedLength);
+	}
 
 }
