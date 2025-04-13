@@ -660,7 +660,7 @@ public class UserController {
 			if (userDTO != null && userDTO.getEmail() != null) {
 				message = "Successfully get Google user info.";
 			
-				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(), userDTO.getEmail(),
+				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());

@@ -65,7 +65,7 @@ public class RefreshTokenService implements IRefreshTokenService {
 
 		if (revoked || expired) {
 			if (expired && !revoked) {
-				updateRefreshToken(refreshToken.getToken(), true);
+				refreshTokenRepository.updateRefreshToken(true, LocalDateTime.now(), refreshToken.getToken());
 			}
 			throw new UserNotFoundException("Invalid Refresh Token.");
 		}

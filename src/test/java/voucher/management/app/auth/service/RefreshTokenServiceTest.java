@@ -9,10 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,14 +113,14 @@ public class RefreshTokenServiceTest {
 
 	@Test
 	void testSaveRefreshToken_Success() throws Exception {
-		// Mock utility method
+		
 		when(GeneralUtility.hashWithSHA256(token)).thenReturn(hashedToken);
 
-		// Mock service calls
+		
 		when(userService.findByUserId(userId)).thenReturn(user);
 		when(jwtService.extractExpiration(token)).thenReturn(expiryDate);
 
-		// Call the method
+		
 		assertDoesNotThrow(() -> refreshTokenService.saveRefreshToken(userId, token));
 
 	}
@@ -138,22 +136,49 @@ public class RefreshTokenServiceTest {
 		assertTrue(result);
 	}
 	
-	@Test
-	void testExpiredNotRevokedShouldCallUpdateAndThrowException() {
-		RefreshToken token = new RefreshToken();
-		token.setRevoked(false);
-		token.setExpiryDate(LocalDateTime.now().minusMinutes(10));
 
-		RefreshTokenService spyService = Mockito.spy(refreshTokenService);
-		doNothing().when(spyService).updateRefreshToken(eq(token.getToken()), eq(true));
+    @Test
+    void verifyRefreshToken_shouldThrowException_whenTokenIsRevoked() {
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRevoked(true);
+        refreshToken.setExpiryDate(LocalDateTime.now().plusHours(1));
+        refreshToken.setToken("revoked-token");
 
-		UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
-			spyService.verifyRefreshToken(token);
-		});
+        assertThrows(UserNotFoundException.class, () -> {
+            refreshTokenService.verifyRefreshToken(refreshToken);
+        });
 
-		verify(spyService, times(1)).updateRefreshToken(eq(token.getToken()), eq(true));
-		assertEquals("Invalid Refresh Token.", exception.getMessage());
-	}
+        verify(refreshTokenRepository, never()).updateRefreshToken(anyBoolean(), any(), any());
+    }
+    
+    @Test
+    void verifyRefreshToken_shouldThrowExceptionAndUpdate_whenTokenIsExpiredButNotRevoked() {
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRevoked(false);
+        refreshToken.setExpiryDate(LocalDateTime.now().minusHours(1));
+        refreshToken.setToken("expired-token");
+
+        assertThrows(UserNotFoundException.class, () -> {
+            refreshTokenService.verifyRefreshToken(refreshToken);
+        });
+
+        verify(refreshTokenRepository).updateRefreshToken(eq(true), any(LocalDateTime.class), eq("expired-token"));
+    }
+    
+    @Test
+    void verifyRefreshToken_shouldThrowException_whenTokenIsRevokedAndExpired() {
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRevoked(true);
+        refreshToken.setExpiryDate(LocalDateTime.now().minusHours(1));
+        refreshToken.setToken("expired-revoked-token");
+
+        assertThrows(UserNotFoundException.class, () -> {
+            refreshTokenService.verifyRefreshToken(refreshToken);
+        });
+
+        // Should NOT update if already revoked
+        verify(refreshTokenRepository, never()).updateRefreshToken(anyBoolean(), any(), any());
+    }
 	
 	
 	@Test
