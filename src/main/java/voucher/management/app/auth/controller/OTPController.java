@@ -131,7 +131,7 @@ public class OTPController {
 
 			if (isValid) {
 				message = "OTP is valid.";
-				HttpHeaders headers = cookieUtils.createCookies(userDTO.getUsername(), userDTO.getEmail(),
+				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
 				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
 						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());

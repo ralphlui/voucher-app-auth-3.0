@@ -75,7 +75,7 @@ public class JWTServiceTest {
 
 	@Test
 	public void testGenerateAndValidateToken() throws Exception {
-		String token = jwtService.generateToken("John", "john@example.com", "123", false);
+		String token = jwtService.generateToken("John", "john@example.com", "123");
 		assertNotNull(token);
 
 		UserDetails userDetails = mock(UserDetails.class);
@@ -87,21 +87,21 @@ public class JWTServiceTest {
 
 	@Test
 	public void testExtractUserId() throws Exception {
-		String token = jwtService.generateToken("John", "john@example.com", "user123", false);
+		String token = jwtService.generateToken("John", "john@example.com", "user123");
 		String userId = jwtService.extractUserID(token);
 		assertEquals("user123", userId);
 	}
 
 	@Test
 	public void testExtractUsername() throws Exception {
-		String token = jwtService.generateToken("John", "john@example.com", "user123", false);
+		String token = jwtService.generateToken("John", "john@example.com", "user123");
 		Claims claims = jwtService.extractAllClaims(token);
 		assertEquals("John", claims.get(JWTService.CLAIM_USERNAME));
 	}
 
 	@Test
 	public void testTokenExpiration() throws Exception {
-		String token = jwtService.generateToken("John", "john@example.com", "user123", false);
+		String token = jwtService.generateToken("John", "john@example.com", "user123");
 		Date expiration = jwtService.extractExpiration(token);
 		assertTrue(expiration.after(new Date()));
 	}
