@@ -133,10 +133,19 @@
 			<version>2.7.2</version>
 		</dependency>
 
+		<!--
+		https://mvnrepository.com/artifact/com.google.auth/google-auth-library-oauth2-http -->
 		<dependency>
 			<groupId>com.google.auth</groupId>
 			<artifactId>google-auth-library-oauth2-http</artifactId>
-			<version>1.19.0</version>
+			<version>1.33.1</version>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/net.minidev/json-smart -->
+		<dependency>
+			<groupId>net.minidev</groupId>
+			<artifactId>json-smart</artifactId>
+			<version>2.5.2</version>
 		</dependency>
 
 	</dependencies>
