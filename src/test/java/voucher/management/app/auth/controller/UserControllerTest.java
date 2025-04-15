@@ -33,6 +33,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -68,10 +69,10 @@ import org.springframework.http.HttpStatus;
 @ActiveProfiles("test")
 public class UserControllerTest {
 
-	@MockBean
+	@MockitoBean
 	private UserService userService;
 
-	@MockBean
+	@MockitoBean
 	private UserRepository userRepository;
 
 	@Autowired
@@ -80,19 +81,19 @@ public class UserControllerTest {
 	@InjectMocks
 	private ObjectMapper objectMapper;
 
-	@MockBean
+	@MockitoBean
 	private EncryptionUtils encryptionUtils;
 
-	@MockBean
+	@MockitoBean
 	private JWTService jwtService;
 
-	@MockBean
+	@MockitoBean
 	private CookieUtils cookieUtils;
 
-	@MockBean
+	@MockitoBean
 	private RefreshTokenService refreshTokenService;
 
-	@MockBean
+	@MockitoBean
 	private GoogleAuthService googleAuthService;
 
 	@Mock

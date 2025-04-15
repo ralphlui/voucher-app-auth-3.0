@@ -37,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 
@@ -66,10 +67,10 @@ public class UserServiceTest {
 	@InjectMocks
 	private UserService userService;
 
-	@MockBean
+	@MockitoBean
 	private UserRepository userRepository;
 
-	@MockBean
+	@MockitoBean
 	private PasswordEncoder passwordEncoder;
 
 	@Mock
