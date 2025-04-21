@@ -30,6 +30,9 @@ public class JWTService {
 	
 	@Value("${pentest.enable}")
 	private String pentestEnable;
+	
+	@Value("${demo.flag.enable}")
+	private String demoEnable;
 
 
 	private final JWTConfig jwtConfig;
@@ -48,8 +51,10 @@ public class JWTService {
 	    if (pentestEnable.equalsIgnoreCase("true")) {
 	        tokenValidDuration = System.currentTimeMillis() + 30 * 60 * 1000;  
 	    } // 24 hours for refresh token // 15 minutes for normal token
-	    else {
-	        tokenValidDuration = System.currentTimeMillis() +  15 * 60 * 1000;
+	    else if (demoEnable.equalsIgnoreCase("true"))  {
+	        tokenValidDuration = System.currentTimeMillis() +  5 * 60 * 1000;
+	    } else {
+	    	tokenValidDuration = System.currentTimeMillis() +  15 * 60 * 1000;
 	    }
 
 		
