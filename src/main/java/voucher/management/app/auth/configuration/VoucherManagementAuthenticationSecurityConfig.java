@@ -61,14 +61,13 @@ public class VoucherManagementAuthenticationSecurityConfig {
 				.addHeaderWriter(
 						new StaticHeadersWriter("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS"))
 				.addHeaderWriter(new StaticHeadersWriter("Access-Control-Allow-Headers", "*"))
-				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter((request, response) -> 
-					response.addHeader("Cache-Control", "max-age=60, must-revalidate")
-				)).csrf(AbstractHttpConfigurer::disable)
+				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter(
+						(request, response) -> response.addHeader("Cache-Control", "max-age=60, must-revalidate")))
+				.csrf(AbstractHttpConfigurer::disable)
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-	            .build();
+				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class).build();
 	}
 	
 
