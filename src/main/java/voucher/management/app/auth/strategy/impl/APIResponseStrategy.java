@@ -66,6 +66,21 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 		return ResponseEntity.status(httpStatus).body(APIResponse.success(userDTO, message));
 	}
+	
+	
+	 public ResponseEntity<APIResponse<UserDTO>> handleResponseWithHeaderAndSendAuditLogForSuccessCase(UserDTO userDTO,
+				String message, AuditLogRequest auditLogRequest, HttpHeaders headers) {
+			
+		 String activityType = auditLogRequest.getActivityType();
+		    String apiEndPoint = auditLogRequest.getRequestActionEndpoint();
+		    String httpMethod = auditLogRequest.getRequestType();
+		    String userId = userDTO.getUserID();
+		    String userName = userDTO.getUsername();
+		    logger.info(message);
+			HttpStatus httpStatus = HttpStatus.OK;
+			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
+			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
+		}
     
 
 	@Override
@@ -82,12 +97,6 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 	}
 	
 	
-    public ResponseEntity<APIResponse<UserDTO>> handleResponseAndsendAuditLogForSuccessCase(UserDTO userDTO, String activityType, String message, String apiEndPoint, String httpMethod, HttpHeaders headers, String userId, String userName) {
-		logger.info(message);
-		HttpStatus httpStatus = HttpStatus.OK;
-		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
-		return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
-	}
 	
     public ResponseEntity<APIResponse<List<UserDTO>>> handleResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType, String message, String apiEndPoint, String httpMethod, String userId, String userName, long totalRecord) {
 		HttpStatus httpStatus = HttpStatus.OK;

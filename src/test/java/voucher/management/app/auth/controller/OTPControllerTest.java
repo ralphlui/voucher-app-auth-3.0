@@ -256,9 +256,8 @@ class OTPControllerTest {
 	        Mockito.when(userService.checkSpecificActiveUserByEmail(anyString())).thenReturn(userDTO);
 	        Mockito.when(cookieUtils.createCookies(any(), any(), any(), any())).thenReturn(headers);
 
-	        // Mock APIResponse handling
 	        APIResponse<UserDTO> response = new APIResponse<UserDTO>(true, "OTP is valid.", 1, userDTO);
-	        Mockito.when(apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(any(), any(), any(), any(), any(), any(), any(), any()))
+	        Mockito.when(apiResponseStrategy.handleResponseWithHeaderAndSendAuditLogForSuccessCase(any(), any(), any(), any()))
 	                .thenReturn(new org.springframework.http.ResponseEntity<>(response, headers, HttpStatus.OK));
 
 	        mockMvc.perform(post("/api/users/otp/validate")
