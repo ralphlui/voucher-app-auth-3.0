@@ -42,7 +42,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 			ValidationResult validationResult, String activityType, String activityDesc, String apiEndPoint,
 			String httpMethod, String userId, String userName) {
 		String message = validationResult.getMessage();
-		logger.error(message);
+
 		activityDesc = activityDesc.concat(message);
 		auditLogService.sendAuditLogToSqs(Integer.toString(validationResult.getStatus().value()),
 				userId, userName, activityType, activityDesc, apiEndPoint,
@@ -60,7 +60,6 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 	    String userId = userDTO.getUserID();
 	    String userName = userDTO.getUsername();
 
-	    logger.info(message);
 		HttpStatus httpStatus = HttpStatus.OK;
 		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId,
 				userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
@@ -76,7 +75,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 		    String httpMethod = auditLogRequest.getRequestType();
 		    String userId = userDTO.getUserID();
 		    String userName = userDTO.getUsername();
-		    logger.info(message);
+	
 			HttpStatus httpStatus = HttpStatus.OK;
 			auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 			return ResponseEntity.status(httpStatus).headers(headers).body(APIResponse.success(userDTO, message));
@@ -89,7 +88,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 			String httpMethod, String userId, String userName) {
 		String message = e.getMessage();
 		String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
-		logger.error(message);
+	
 		activityDesc = activityDesc.concat(message);
 		auditLogService.sendAuditLogToSqs(Integer.toString(htpStatuscode.value()), userId, userName,
 				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, message);
@@ -107,7 +106,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
 	
     public ResponseEntity<APIResponse<List<UserDTO>>> handleEmptyResponseListAndsendAuditLogForSuccessCase(List<UserDTO> userDTOList, String activityType,
     		String message, String apiEndPoint, String httpMethod, String userId, String userName) {
-		logger.info(message);
+	
 		HttpStatus httpStatus = HttpStatus.OK;
 		auditLogService.sendAuditLogToSqs(Integer.toString(httpStatus.value()), userId, userName, activityType, message, apiEndPoint, auditLogResponseSuccess, httpMethod, "");
 		return ResponseEntity.status(httpStatus).body(APIResponse.noList(userDTOList, message));
@@ -116,7 +115,7 @@ public class APIResponseStrategy implements IAPIResponseStrategy{
     public ResponseEntity<APIResponse<List<UserDTO>>> handleResponseListAndsendAuditLogForExceptionCase(Exception e, String activityType, String activityDesc, String apiEndPoint, String httpMethod, String userId, String userName) {
 		String message = e.getMessage();
 		String responseMessage = e instanceof UserNotFoundException ? e.getMessage() : genericErrorMessage;
-		logger.error("Error: {}", message);
+		
 		activityDesc = activityDesc.concat(message);
 		auditLogService.sendAuditLogToSqs(Integer.toString(HttpStatus.NOT_FOUND.value()), userId, userName, activityType, activityDesc, apiEndPoint, auditLogResponseSuccess, httpMethod, message);
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
