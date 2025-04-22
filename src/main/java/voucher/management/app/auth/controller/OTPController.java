@@ -79,8 +79,7 @@ public class OTPController {
 			UserDTO userDTO = userService.checkSpecificActiveUserByEmail(userRequest.getEmail());
 
 			if (isSent) {
-				auditReq.setActivityDescription(message);
-				
+				auditReq.setActivityDescription(message);				
 				
 				return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
 				
@@ -109,6 +108,7 @@ public class OTPController {
 		String apiEndPoint = "api/otp";
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Validating OTP is failed due to ";
+		AuditLogRequest auditReq = new AuditLogRequest(activityDesc, activityDesc, message, activityType, activityDesc, apiEndPoint, activityType, apiEndPoint, activityDesc);
 
 		try {
 
@@ -133,8 +133,8 @@ public class OTPController {
 				message = "OTP is valid.";
 				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
+				auditReq.setActivityDescription(message);
+				return apiResponseStrategy.handleResponseWithHeaderAndSendAuditLogForSuccessCase(userDTO, message, auditReq, headers);
 			} else {
 				message = "OTP expired or incorrect";
 				return apiResponseStrategy.handleResponseAndsendAuditLogForFailedCase(activityType,

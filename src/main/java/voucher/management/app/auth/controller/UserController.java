@@ -182,8 +182,9 @@ public class UserController {
 			if (pentestEnable.equalsIgnoreCase("true")) {
 				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
+				auditReq.setActivityDescription(message);
+				return apiResponseStrategy.handleResponseWithHeaderAndSendAuditLogForSuccessCase(userDTO, message, auditReq, headers);
+				
 			} else {
 
 				auditReq.setActivityDescription(message);
@@ -389,6 +390,8 @@ public class UserController {
 		String httpMethod = HttpMethod.POST.name();
 		String activityDesc = "Logging out user is failed due to ";
 		String userID = AuditLogInvalidUser.INVALID_USER_ID.toString();
+		AuditLogRequest auditReq = new AuditLogRequest("", auditLogUserId, auditLogUserName,
+				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
 
 		String tokenFromCookie = cookieUtils.getTokenFromCookies(request, ACCESS_TOKEN_COOKIE).orElse(null);
 
@@ -409,8 +412,8 @@ public class UserController {
 			if (user != null) {
 
 				message = "User logout successfully";
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(DTOMapper.toUserDTO(user),
-						activityType, message, apiEndPoint, httpMethod, headers, auditLogUserId, auditLogUserName);
+				auditReq.setActivityDescription(message);
+				return apiResponseStrategy.handleResponseWithHeaderAndSendAuditLogForSuccessCase(DTOMapper.toUserDTO(user), message, auditReq, headers);
 			} else {
 				message = "User not found, session cleared.";
 				logger.error(message);
@@ -662,10 +665,8 @@ public class UserController {
 			
 				HttpHeaders headers = cookieUtils.buildAuthHeadersWithCookies(userDTO.getUsername(), userDTO.getEmail(),
 						userDTO.getUserID(), null);
-				return apiResponseStrategy.handleResponseAndsendAuditLogForSuccessCase(userDTO, activityType, message,
-						apiEndPoint, httpMethod, headers, userDTO.getUserID(), userDTO.getUsername());
-				//auditReq.setActivityDescription(message);
-				//return apiResponseStrategy.handleResponseAndSendAuditLogForSuccessCase(userDTO, message, auditReq);
+				auditReq.setActivityDescription(message);
+				return apiResponseStrategy.handleResponseWithHeaderAndSendAuditLogForSuccessCase(userDTO, message, auditReq, headers);
 				
 				 
 			} else {
