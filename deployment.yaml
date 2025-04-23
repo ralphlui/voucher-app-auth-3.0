@@ -84,6 +84,11 @@ spec:
                 configMapKeyRef:
                   name: my-configmap
                   key: SECURE_ENABLE
+            - name: DEMO_ENABLE
+              valueFrom:
+                configMapKeyRef:
+                  name: my-configmap
+                  key: DEMO_ENABLE
             - name: REDIS_HOST
               valueFrom:
                 configMapKeyRef:

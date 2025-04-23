@@ -6,6 +6,7 @@ WORKDIR /app
 COPY target/voucher-app-auth-0.0.1-SNAPSHOT.jar /app/voucher-app-auth-0.0.1-SNAPSHOT.jar
 # Copy certificate from build context into container
 COPY devplify.crt /tmp/devplify.crt
+COPY demo.devplify.crt /tmp/demo.devplify.crt
 
 RUN keytool -importcert \
     -keystore $JAVA_HOME/lib/security/cacerts \
@@ -14,6 +15,14 @@ RUN keytool -importcert \
     -alias devplify \
     -file /tmp/devplify.crt && \
     rm /tmp/devplify.crt
+
+RUN keytool -importcert \
+    -keystore $JAVA_HOME/lib/security/cacerts \
+    -storepass changeit \
+    -noprompt \
+    -alias demo.devplify \
+    -file /tmp/demo.devplify.crt && \
+    rm /tmp/demo.devplify.crt
 
 # Expose the port that the Spring Boot application is listening on
 EXPOSE 8083
