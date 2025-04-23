@@ -15,6 +15,14 @@ RUN keytool -importcert \
     -file /tmp/devplify.crt && \
     rm /tmp/devplify.crt
 
+RUN keytool -importcert \
+    -keystore $JAVA_HOME/lib/security/cacerts \
+    -storepass changeit \
+    -noprompt \
+    -alias demo.devplify \
+    -file /tmp/demo.devplify.crt && \
+    rm /tmp/demo.devplify.crt
+
 # Expose the port that the Spring Boot application is listening on
 EXPOSE 8083
 # Run the Spring Boot application when the container starts
