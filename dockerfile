@@ -6,6 +6,7 @@ WORKDIR /app
 COPY target/voucher-app-auth-0.0.1-SNAPSHOT.jar /app/voucher-app-auth-0.0.1-SNAPSHOT.jar
 # Copy certificate from build context into container
 COPY devplify.crt /tmp/devplify.crt
+COPY demo.devplify.crt /tmp/demo.devplify.crt
 
 RUN keytool -importcert \
     -keystore $JAVA_HOME/lib/security/cacerts \
