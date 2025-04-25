@@ -266,7 +266,7 @@ public class UserController {
 				activityType, activityDesc, apiEndPoint, auditLogResponseFailure, httpMethod, "");
 		
 		try {
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(resetPwdReq.getUserId());
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(resetPwdReq,true);
 			if (!validationResult.isValid()) {
 				logger.error("Reset passwrod validation is not successful");
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
@@ -308,7 +308,7 @@ public class UserController {
 		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateUpdating(userID);
+			ValidationResult validationResult = userValidationStrategy.validateUpdating(userRequest);
 
 			if (validationResult.isValid()) {
 
@@ -352,7 +352,7 @@ public class UserController {
 		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userRequest.getUserId());
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(userRequest,false);
 
 			if (!validationResult.isValid()) {
 
@@ -598,7 +598,7 @@ public class UserController {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
 
 			// Validate User ID
-			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq.getUserId());
+			ValidationResult validationResult = userValidationStrategy.validateObjectByUseId(roleReq,false);
 			if (!validationResult.isValid()) {
 				return apiResponseStrategy.handleResponseAndsendAuditLogForValidationFailure(validationResult,
 						activityType, activityDesc, apiEndPoint, httpMethod, auditLogUserId, auditLogUserName);

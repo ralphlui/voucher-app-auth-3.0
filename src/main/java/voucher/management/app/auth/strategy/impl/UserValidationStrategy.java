@@ -91,10 +91,10 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 	}
 
 	@Override
-	public ValidationResult validateUpdating(String userId) {
+	public ValidationResult validateUpdating(UserRequest userRequest) {
 		ValidationResult validationResult = new ValidationResult();
 
-		if (userId == null || userId.isEmpty()) {
+		if (userRequest.getUserId() == null || userRequest.getUserId().isEmpty()) {
 			validationResult.setMessage("User ID cannot be empty.");
 			validationResult.setStatus(HttpStatus.BAD_REQUEST);
 			validationResult.setValid(false);
@@ -103,7 +103,7 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 			return validationResult;
 		}
 
-		ValidationResult validationObjResult = validateObjectByUserId(userId);
+		ValidationResult validationObjResult = validateObjectByUserId(userRequest,true);
 		if (!validationObjResult.isValid()) {
 			return validationObjResult;
 		}
@@ -113,24 +113,38 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 	}
 
 	@Override
-	public ValidationResult validateObjectByUserId(String userId) {
-		User user = userService.findByUserId(userId);
+	public ValidationResult validateObjectByUserId(UserRequest userRequest,boolean requiresPasswordValidation) {
+		User user = userService.findByUserId(userRequest.getUserId());
 
 		if (user == null) {
-			return validateUserNotFound(userId, auditLogInvalidUserName);
+			return validateUserNotFound(userRequest.getUserId(), auditLogInvalidUserName);
 		}
 
 		String userName = user.getUsername();
 
 		if (!user.isActive()) {
-			return validateDeletedUser(userId, userName);
+			return validateDeletedUser(userRequest.getUserId(), userName);
 		}
 
 		if (!user.isVerified()) {
-			return validateUnVerifiedUser(userId, userName);
+			return validateUnVerifiedUser(userRequest.getUserId(), userName);
+		}
+		
+		if(requiresPasswordValidation) {
+		String msgPassword = passwordValidatorService.validatePassword(userRequest.getPassword());
+
+		if (!msgPassword.equalsIgnoreCase("Valid")) {
+			ValidationResult validationResult = new ValidationResult();
+			validationResult.setMessage(msgPassword);
+			validationResult.setStatus(HttpStatus.BAD_REQUEST);
+			validationResult.setValid(false);
+			validationResult.setUserId(userRequest.getUserId());
+			validationResult.setUserName(userRequest.getUsername());
+			return validationResult;
+		}
 		}
 
-		return validateValidUser(userId, userName);
+		return validateValidUser(userRequest.getUserId(), userName);
 	}
 
 	private ValidationResult validateUserNotFound(String userId, String userName) {
@@ -178,9 +192,9 @@ public class UserValidationStrategy implements IAPIHelperValidationStrategy<User
 		return validationResult;
 	}
 
-	public ValidationResult validateObjectByUseId(String id) {
+	public ValidationResult validateObjectByUseId(UserRequest userRequest, boolean requiresPasswordValidation) {
 
-		ValidationResult validationResult = validateObjectByUserId(id);
+		ValidationResult validationResult = validateObjectByUserId(userRequest,requiresPasswordValidation);
 		auditLogInvalidUserId = validationResult.getUserId();
 		auditLogInvalidUserName = validationResult.getUserName();
 		return validationResult;

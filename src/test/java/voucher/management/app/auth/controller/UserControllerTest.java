@@ -23,7 +23,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,10 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.http.HttpServletRequest;
-import voucher.management.app.auth.dto.AuditLogRequest;
-import voucher.management.app.auth.dto.UserDTO;
-import voucher.management.app.auth.dto.UserRequest;
-import voucher.management.app.auth.dto.ValidationResult;
+import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.entity.RefreshToken;
 import voucher.management.app.auth.entity.User;
 import voucher.management.app.auth.enums.RoleType;
@@ -142,6 +138,7 @@ public class UserControllerTest {
 		userRequest = new UserRequest();
 
 	}
+	
 
 	@Test
 	void testGetAllUser() throws Exception {
@@ -299,9 +296,19 @@ public class UserControllerTest {
 	@Test
 	void testResetPassword() throws Exception {
 		testUser.setVerified(true);
+		
+		ValidationResult validResult = new ValidationResult();
+		validResult.setValid(true);
+		validResult.setUserId(testUser.getUserId());
+		validResult.setUserName("John");
+		validResult.setMessage("");
+
+		Mockito.when(userValidationStrategy.validateObjectByUseId(Mockito.eq(userRequest), Mockito.eq(true)))
+		       .thenReturn(validResult);
+		
 		Mockito.when(userService.findByUserId(testUser.getUserId())).thenReturn(testUser);
 
-		UserRequest userRequest = new UserRequest(testUser.getEmail(), "Password@345");
+		UserRequest userRequest = new UserRequest(testUser.getEmail(), "Pa@wo@rd@345");
 		userRequest.setUserId(testUser.getUserId());
 		Mockito.when(userService.resetPassword(userRequest.getUserId(), userRequest.getPassword()))
 				.thenReturn(DTOMapper.toUserDTO(testUser));
@@ -325,6 +332,7 @@ public class UserControllerTest {
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.success").value(false)).andDo(print());
 	}
+	
 
 	@Test
 	void testUpdatedUser() throws Exception {
@@ -399,7 +407,8 @@ public class UserControllerTest {
 		validResult.setUserName("John");
 		validResult.setMessage("");
 
-		when(userValidationStrategy.validateObjectByUseId(eq(userId))).thenReturn(validResult);
+		when(userValidationStrategy.validateObjectByUseId(eq(userRequest), eq(true))).thenReturn(validResult);
+
 		when(userService.checkSpecificActiveUser(eq(userId))).thenThrow(new UserNotFoundException("User not found"));
 
 		when(apiResponseStrategy.handleResponseAndsendAuditLogForExceptionCase(any(Exception.class),
