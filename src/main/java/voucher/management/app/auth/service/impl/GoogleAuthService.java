@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class GoogleAuthService {
         String name = null;
         UserDTO userDTO = new UserDTO();
         try {
-           
+        	
             // Verifying the ID Token
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
@@ -59,13 +60,16 @@ public class GoogleAuthService {
                 throw new SecurityException("Invalid ID Token");
             }
 
-            // Fetch user information from Google
-            RestTemplate restTemplate = new RestTemplate();
-            String url = googleTokenInfoUrl.trim() + idToken;
-
-            Map<String, Object> val = restTemplate.getForObject(url, Map.class);
             
+            String url = UriComponentsBuilder
+                    .fromUriString(googleTokenInfoUrl.trim())
+                    .queryParam("id_token", idToken)
+                    .toUriString();
+   
+            RestTemplate restTemplate = new RestTemplate();
            
+            Map<String, Object> val = restTemplate.getForObject(url, Map.class);
+                       
 
             if (val != null) {
                 email = (String) val.get("email");
