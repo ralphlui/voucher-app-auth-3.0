@@ -63,7 +63,8 @@ public class VoucherManagementAuthenticationSecurityConfig {
 				.addHeaderWriter(new StaticHeadersWriter("Access-Control-Allow-Headers", "*"))
 				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter(
 						(request, response) -> response.addHeader("Cache-Control", "max-age=60, must-revalidate")))
-				.csrf(csrf -> csrf.disable()) // CSRF disabled because this is a stateless REST API using JWT
+				// CSRF protection is disabled because JWT Bearer tokens are used for stateless authentication.
+				.csrf(csrf -> csrf.disable()) // NOSONAR - CSRF is not required for JWT-based stateless authentication
 				.authorizeHttpRequests(
 						auth -> auth.requestMatchers(SECURED_URLs).permitAll().anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
