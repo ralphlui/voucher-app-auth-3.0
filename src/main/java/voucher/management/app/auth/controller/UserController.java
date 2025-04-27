@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import io.jsonwebtoken.JwtException;
@@ -41,6 +42,7 @@ import org.springframework.data.domain.Sort;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
+@Validated
 public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -74,7 +76,7 @@ public class UserController {
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
-			@RequestHeader("Authorization") String authorizationHeader, @Valid SearchRequest searchRequest) {
+			@RequestHeader("Authorization") String authorizationHeader, @Valid @ModelAttribute SearchRequest searchRequest) {
 		logger.info("Call user getAll API with page={}, size={}", searchRequest.getPage(), searchRequest.getSize());
 		String message = "";
 		String activityType = "Authentication-RetrieveAllActiveUsers";
