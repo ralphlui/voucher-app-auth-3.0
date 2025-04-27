@@ -14,11 +14,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.dto.*;
 import voucher.management.app.auth.entity.RefreshToken;
@@ -40,6 +42,7 @@ import org.springframework.data.domain.Sort;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
+@Validated
 public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
@@ -73,9 +76,8 @@ public class UserController {
 
 	@GetMapping(value = "", produces = "application/json")
 	public ResponseEntity<APIResponse<List<UserDTO>>> getAllActiveUsers(
-			@RequestHeader("Authorization") String authorizationHeader, @RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "500") int size) {
-		logger.info("Call user getAll API with page={}, size={}", page, size);
+			@RequestHeader("Authorization") String authorizationHeader, @Valid @ModelAttribute SearchRequest searchRequest) {
+		logger.info("Call user getAll API with page={}, size={}", searchRequest.getPage(), searchRequest.getSize());
 		String message = "";
 		String activityType = "Authentication-RetrieveAllActiveUsers";
 		String apiEndPoint = API_ENDPOINT;
@@ -85,8 +87,8 @@ public class UserController {
 		
 		try {
 			retrieveUserIDAndNameFromToken(authorizationHeader);
-
-			Pageable pageable = PageRequest.of(page, size, Sort.by("username").ascending());
+	
+			Pageable pageable = PageRequest.of(searchRequest.getPage(), searchRequest.getSize(), Sort.by("username").ascending());
 			Map<Long, List<UserDTO>> resultMap = userService.findActiveUsers(pageable);
 			logger.info("all active user list size {}", resultMap.size());
 
