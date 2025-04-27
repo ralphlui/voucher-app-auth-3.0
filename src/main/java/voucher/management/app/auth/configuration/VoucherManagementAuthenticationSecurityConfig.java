@@ -62,7 +62,10 @@ public class VoucherManagementAuthenticationSecurityConfig {
 						new StaticHeadersWriter("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS"))
 				.addHeaderWriter(new StaticHeadersWriter("Access-Control-Allow-Headers", "*"))
 				.addHeaderWriter(new HstsHeaderWriter(31536000, false, true)).addHeaderWriter(
-						(request, response) -> response.addHeader("Cache-Control", "max-age=60, must-revalidate")))
+						(request, response) -> response.addHeader("Cache-Control", "max-age=60, must-revalidate"))
+			     .addHeaderWriter(new StaticHeadersWriter("Content-Security-Policy",
+			                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';"))
+			        )
 				// CSRF protection is disabled because JWT Bearer tokens are used for stateless authentication.
 				.csrf(csrf -> csrf.disable()) // NOSONAR - CSRF is not required for JWT-based stateless authentication
 				.authorizeHttpRequests(
