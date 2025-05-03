@@ -42,6 +42,7 @@ public class OTPService {
 			deleteOtp(hashedEmail);
 		}
 		redisTemplate.opsForValue().set(hashedEmail, otp, Duration.ofMinutes(OTP_VALIDITY_DURATION));
+		logger.info("OTP: {}",  otp);
 		return otp;
 	}
 
