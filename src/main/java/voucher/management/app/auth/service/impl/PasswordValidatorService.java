@@ -1,8 +1,11 @@
 package voucher.management.app.auth.service.impl;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -55,18 +58,26 @@ public class PasswordValidatorService {
 		return "valid";
 	}
 
+	
 	private static Set<String> loadDictionary() {
-		Set<String> dictionaryWords = new HashSet<>();
-		try (BufferedReader br = new BufferedReader(new FileReader("src/main/resources/dictionary.txt"))) {
-			String line;
-			while ((line = br.readLine()) != null) {
-				dictionaryWords.add(line.trim().toLowerCase());
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return dictionaryWords;
+		
+	    Set<String> dictionaryWords = new HashSet<>();
+	    try (InputStream inputStream = PasswordValidatorService.class.getClassLoader().getResourceAsStream("dictionary.txt")) {
+	        if (inputStream == null) {
+	            throw new FileNotFoundException("dictionary.txt not found in classpath.");
+	        }
+	        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+	            String line;
+	            while ((line = br.readLine()) != null) {
+	                dictionaryWords.add(line.trim().toLowerCase());
+	            }
+	        }
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+	    return dictionaryWords;
 	}
+
 
 	public static boolean containsDictionaryWord(String password) {
 		Set<String> dictionaryWords = loadDictionary();
