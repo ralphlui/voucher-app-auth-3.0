@@ -21,10 +21,6 @@ public class AmazonSES {
 			String subject, String body) throws Exception {
 		boolean isSent = false;
 
-		logger.info("From: " + from);
-		logger.info("To: " + recipientsTo.size() + " :: " + recipientsTo.toString());
-		logger.info("body: " + body);
-		logger.info("subject: " + subject);
 		try {
 
 			SendEmailRequest request = new SendEmailRequest()

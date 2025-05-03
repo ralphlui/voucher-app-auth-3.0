@@ -3,8 +3,6 @@ package voucher.management.app.auth.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -28,7 +26,7 @@ public class AWSConfig {
 	@Value("${aws.ses.from}")
 	private String emailFrom;
 
-	@Value("${aws.sqs.url}")
+	@Value("${aws.sqs.queue.audit.url}")
 	private String sqsURL;
 
 	@Bean
@@ -50,9 +48,10 @@ public class AWSConfig {
 	@Bean
 	public AmazonSimpleEmailService sesClient() {
 		AWSCredentials awsCredentials = new BasicAWSCredentials(awsAccessKey, awsSecretKey);
-		AmazonSimpleEmailService sesClient = AmazonSimpleEmailServiceClientBuilder.standard()
-				.withCredentials(new AWSStaticCredentialsProvider(awsCredentials)).withRegion(awsRegion).build();
-		return sesClient;
+		return AmazonSimpleEmailServiceClientBuilder.standard()
+			    .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
+			    .withRegion(awsRegion)
+			    .build();
 	}
 	
 	@Bean

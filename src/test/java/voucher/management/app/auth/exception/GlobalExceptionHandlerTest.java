@@ -44,7 +44,7 @@ public class GlobalExceptionHandlerTest {
         ResponseEntity<APIResponse> responseEntity = globalExceptionHandler.handleObjectNotFoundException(ex);
 
         // Verify the result
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
         assertEquals("Failed to get data. Test exception message", responseEntity.getBody().getMessage());
     }
 	

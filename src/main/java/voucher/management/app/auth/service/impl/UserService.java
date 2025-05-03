@@ -11,20 +11,22 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.data.domain.Page;
 
 import voucher.management.app.auth.configuration.AWSConfig;
-import voucher.management.app.auth.configuration.VoucherManagementAuthenticationSecurityConfig;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 import voucher.management.app.auth.exception.UserNotFoundException;
 import voucher.management.app.auth.repository.UserRepository;
@@ -34,24 +36,21 @@ import voucher.management.app.auth.utility.DTOMapper;
 import voucher.management.app.auth.utility.EncryptionUtils;
 
 @Service
+@RequiredArgsConstructor
 public class UserService implements IUserService  {
 	
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-	@Autowired
-	private UserRepository userRepository;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
+	private final EncryptionUtils encryptionUtils;
+	private final AWSConfig awsConfig;
 	
-	@Autowired
-	private PasswordEncoder passwordEncoder;
+	@Value("${frontend.url}")
+	private String frontEndUrl;
+	private static final String ACTIVE_USER_NOT_FOUND_MSG = "Active user is not found.";
+	private static final String ACTIVE_USER_FOUND_MSG = "Active user is found.";
 	
-	@Autowired
-	private EncryptionUtils encryptionUtils;
-	
-	@Autowired
-	private AWSConfig awsConfig;
-	
-	@Autowired
-	private VoucherManagementAuthenticationSecurityConfig securityConfig;
 
 	@Override
 	public Map<Long, List<UserDTO>> findActiveUsers(Pageable pageable) {
@@ -71,7 +70,7 @@ public class UserService implements IUserService  {
 			return result;
 
 		} catch (Exception ex) {
-			logger.error("findByIsActiveTrue exception... {}", ex.toString());
+			logger.error("findByIsActiveTrue exception...", ex);
 			throw ex;
 
 		}
@@ -85,30 +84,39 @@ public class UserService implements IUserService  {
 			user.setUsername(userReq.getUsername());
 			String encodedPassword = passwordEncoder.encode(userReq.getPassword());
 			user.setPassword(encodedPassword);
-			String code = UUID.randomUUID().toString();
-			user.setVerificationCode(code);
+			
+			
+			if(userReq.getAuthProvider().equals(AuthProvider.GOOGLE)) {
+				user.setVerified(true);
+				user.setAuthProvider(AuthProvider.GOOGLE);
+				user.setVerificationCode("");
+			}else {
 			user.setVerified(false);
+			user.setAuthProvider(AuthProvider.NATIVE);
+			String code = UUID.randomUUID().toString();
+			
+			user.setVerificationCode(code);
+			}
 			user.setActive(true);
 			user.setRole(userReq.getRole());
+			
 			user.setCreatedDate(LocalDateTime.now());
-			String preferences = formatPreferencesString(userReq.getPreferences());
-			user.setPreferences(preferences);
+			 
 			logger.info("Create User...");
 			User createdUser = userRepository.save(user);
-
+			
+			if(!userReq.getAuthProvider().equals(AuthProvider.GOOGLE)) {
 			if (createdUser == null) {
 				throw new Exception("User registration is not successful");
 			}
 			logger.info("User registration is successful.");
-			String verificationCode = encryptionUtils.encrypt(createdUser.getVerificationCode());
-			logger.info("verification code" + verificationCode);
 			sendVerificationEmail(createdUser);
+			}
 
-			UserDTO userDTO = DTOMapper.toUserDTO(createdUser);
-			return userDTO;
+			return DTOMapper.toUserDTO(createdUser);
 
 		} catch (Exception e) {
-			logger.error("Error occurred while user creating, " + e.toString());
+			logger.error("Error occurred while creating user", e);
 			e.printStackTrace();
 			throw e;
 
@@ -126,7 +134,14 @@ public class UserService implements IUserService  {
 	@Override
 	public User findByUserId(String userId) {
 
-		return userRepository.findByUserId(userId);
+		try {
+			User user = userRepository.findByUserId(userId);
+			return user;
+		} catch (Exception e) {
+			logger.error("Exception occurred while executing findByUserId", e);
+			throw e;
+		}
+		
 	}
 
 
@@ -141,7 +156,7 @@ public class UserService implements IUserService  {
 			logger.error("User login is not successful.");
 			throw new UserNotFoundException("Invalid Credentials");
 		} catch (Exception e) {
-			logger.error("Error occurred while validateUserLogin, " + e.toString());
+			logger.error("Error occurred while validating user login", e);
 			e.printStackTrace();
 			throw e;
 		}
@@ -179,6 +194,8 @@ public class UserService implements IUserService  {
 		return userRepository.findByUserIdAndStatus(userId, isActive, isVerified);
 	}
 	
+	
+	
 	@Override
 	public UserDTO update(UserRequest userRequest) {
 		try {
@@ -191,55 +208,33 @@ public class UserService implements IUserService  {
 			dbUser.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 			dbUser.setActive(userRequest.getActive());
 			dbUser.setUpdatedDate(LocalDateTime.now());
-			String preferences = formatPreferencesString(userRequest.getPreferences());
-			dbUser.setPreferences(preferences);
 			logger.info("Update User...");
 			User updateUser = userRepository.save(dbUser);
 			logger.info("User update is successful");
-			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-			return updateUserDTO;
+			return DTOMapper.toUserDTO(updateUser);
 		} catch (Exception e) {
-			logger.error("Error occurred while user updating, " + e.toString());
+			logger.error("Error occurred while user updating", e);
 			e.printStackTrace();
 			throw e;
 		}
 
 	}
 	
-	private String formatPreferencesString(List<String> preferencesList) {
-		String preferences = preferencesList == null ? "" : String.join(",", preferencesList);
-		String removedWhiteSpacePreferences = preferences.replaceAll("\\s*,\\s*", ",");
-		return removedWhiteSpacePreferences.trim();
-	}
-	
-//	private void addExistingPreferences(UserRequest userRequest, User dbUser) {
-//		String[] preferencesArray = dbUser.getPreferences().split(",");
-//		 Set<String> uniqueValuesSet = new HashSet<>(Arrays.asList(preferencesArray));
-//		for (String preference : userRequest.getPreferences()) {
-//			if (!uniqueValuesSet.contains(preference.trim())) {
-//				uniqueValuesSet.add(preference.trim());
-//			}
-//		}
-//		String preferences = String.join(",", uniqueValuesSet);
-//		dbUser.setPreferences(preferences);
-//	}
-	
-
 	public void sendVerificationEmail(User user) {
 
 		try {
 
 			AmazonSimpleEmailService client = awsConfig.sesClient();
 			String from = awsConfig.getEmailFrom().trim();
-			String clientURL = securityConfig.getFrontEndUrl().trim();
+			String clientURL = frontEndUrl;
 
 			String to = user.getEmail();
 
 			String verificationCode = encryptionUtils.encrypt(user.getVerificationCode());
-			logger.info(" Verification Code "+ verificationCode);
+
 
 			String verifyURL = clientURL + "/verification/" + verificationCode.trim();
-			logger.info("verifyURL... {}", verifyURL);
+			logger.info("verifyURL...");
 
 			String subject = "Please verify your registration";
 			String body = "Dear [[name]],<br><br>" + "Thank you for choosing our service.<br>"
@@ -253,35 +248,8 @@ public class UserService implements IUserService  {
 
 			AmazonSES.sendEmail(client, from, Arrays.asList(to), subject, body);
 		} catch (Exception e) {
-			logger.error("Error occurred while sendVerificationEmail, " + e.toString());
+			logger.error("Error occurred while sendVerificationEmail", e);
 			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public Map<Long, List<UserDTO>> findUsersByPreferences(String preferences, Pageable pageable) {
-		Map<Long, List<UserDTO>> result = new HashMap<>();
-		try {
-			Page<User> userPages = userRepository.findByPreferences(preferences, true, true, RoleType.CUSTOMER, pageable);
-			long totalRecord = userPages.getTotalElements();
-			List<UserDTO> userDTOList = new ArrayList<>();
-			if (totalRecord > 0) {
-				logger.info("Active User list by preferences is found");
-				for (User user : userPages.getContent()) {
-					UserDTO userDTO = DTOMapper.toUserDTO(user);
-					userDTOList.add(userDTO);
-				}
-
-			} else {
-				logger.error("User not found...");
-			}
-			result.put(totalRecord, userDTOList);
-			return result;
-
-		} catch (Exception ex) {
-			logger.error("findByIsActiveTrue exception... {}", ex.toString());
-			throw ex;
-
 		}
 	}
 
@@ -298,11 +266,10 @@ public class UserService implements IUserService  {
 			dbUser.setPassword(passwordEncoder.encode(password));
 			User updatedUser = userRepository.save(dbUser);
 			logger.info("Reset Password is successful.");
-			UserDTO updateUserDTO = DTOMapper.toUserDTO(updatedUser);
-			return updateUserDTO;
+			return DTOMapper.toUserDTO(updatedUser);
 
 		} catch (Exception e) {
-			logger.error("Error occurred while validateUserLogin, " + e.toString());
+			logger.error("Error occurred while validateUserLogin", e);
 			e.printStackTrace();
 			throw e;
 		}
@@ -313,10 +280,10 @@ public class UserService implements IUserService  {
 		try {
 			User user = findByUserIdAndStatus(userId, true, true);
 			if (user == null) {
-				logger.error("Active user is not found.");
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
 				throw new UserNotFoundException("This user is not an active user");
 			}
-			logger.info("Active user is found.");
+			logger.info(ACTIVE_USER_FOUND_MSG);
 			return DTOMapper.toUserDTO(user);
 			
 		} catch (Exception e) {
@@ -326,72 +293,69 @@ public class UserService implements IUserService  {
 		}
 	}
 
+
 	@Override
-	public UserDTO deletePreferencesByUser(String userId, List<String> preferences) throws Exception {
+	public UserDTO updateRoleByUser(String userId, RoleType role) {
 		try {
 			User dbUser = findByUserId(userId);
 			if (dbUser == null) {
-			    logger.error("user by this deleted preference is not found.");
+				logger.error("user by this updated role is not found.");
 				throw new UserNotFoundException("User not found.");
 			}
 			
-			 String existingPreferencesStr = dbUser.getPreferences();
-			    if (existingPreferencesStr == null || existingPreferencesStr.isEmpty()) {
-			        throw new UserNotFoundException("No existing user preferences to delete.");
-			    }
-			    
-			    List<String> existingPreferencesList = new ArrayList<>(Arrays.asList(existingPreferencesStr.split(",")));
-			    List<String> deletedPreferences = preferences;
-			    deletedPreferences.replaceAll(String::trim);
-			    
-			    List<String> updatedPreferences = new ArrayList<>(existingPreferencesList);
-			    updatedPreferences.removeAll(deletedPreferences);
-			    
-			    if (updatedPreferences.size() == existingPreferencesList.size()) {
-			        throw new UserNotFoundException("The requested preferences do not exist and cannot be deleted.");
-			    }
-
-			    dbUser.setPreferences(String.join(",", updatedPreferences));
-			    dbUser.setUpdatedDate(LocalDateTime.now());
-			    logger.info("preference deletion ...");
-				User updateUser = userRepository.save(dbUser);
-				logger.info("preference deletion is successful");
-				UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-				return updateUserDTO;
-			
-		} catch (Exception e) {
-			logger.error("Error occurred while user deleting preferences, " + e.toString());
-			e.printStackTrace();
-			throw e;
-
-		}
-	}
-	
-	@Override
-	public UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception {
-		try {
-			User dbUser = findByUserId(userId);
-			if (dbUser == null) {
-				logger.error("user by this updated preference is not found.");
-				throw new UserNotFoundException("User not found.");
-			}
-
-			String updatedPreferences = formatPreferencesString(preferences);
-			dbUser.setPreferences(updatedPreferences.trim());
+			dbUser.setRole(role);
 
 			dbUser.setUpdatedDate(LocalDateTime.now());
 
 			User updateUser = userRepository.save(dbUser);
-			logger.info("preference update is successful");
+			logger.info("Role update is successful");
 			UserDTO updateUserDTO = DTOMapper.toUserDTO(updateUser);
-			logger.info("Update Preferences size "+updateUserDTO.getPreferences().size());
+			logger.info("Update Role: {}", updateUserDTO.getRole());
 			return updateUserDTO;
 
 		} catch (Exception e) {
-			logger.error("Error occurred while user deleting preferences, " + e.toString());
+		     
+		    logger.error("Error occurred while updating user role. Error message: {}", e.getMessage(), e);		    
+		    throw new RuntimeException("Failed to update user role. Please check the logs for details.", e);
+
+		}
+
+	}
+
+	@Override
+	public UserDTO checkSpecificActiveUserByEmail(String email) {
+		try {
+			User user = findByEmailAndStatus(email, true, true);
+			if (user == null) {
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
+				throw new UserNotFoundException("This user is not an active user");
+			}
+			logger.info(ACTIVE_USER_FOUND_MSG);
+			return DTOMapper.toUserDTO(user);
+			
+		} catch (Exception e) {
+		    logger.error("Error occurred while checking specific active user by email", e);		     
+		    throw e;
+
+		}	
+
+	}
+	
+	@Override
+	public User findActiveUserByID(String userId) {
+		try {
+			User user = findByUserIdAndStatus(userId, true, true);
+			if (user == null) {
+				logger.error(ACTIVE_USER_NOT_FOUND_MSG);
+				throw new UserNotFoundException("This user is not an active or verified user");
+			}
+			logger.info(ACTIVE_USER_FOUND_MSG);
+			return user;
+			
+		} catch (Exception e) {
+			logger.error("Error occurred while checking specific active User", e);
 			e.printStackTrace();
 			throw e;
-
 		}
 	}
 

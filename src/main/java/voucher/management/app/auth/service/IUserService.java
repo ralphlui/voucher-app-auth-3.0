@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import voucher.management.app.auth.dto.UserDTO;
 import voucher.management.app.auth.dto.UserRequest;
 import voucher.management.app.auth.entity.User;
+import voucher.management.app.auth.enums.RoleType;
 
 public interface IUserService {
 	Map<Long, List<UserDTO>> findActiveUsers(Pageable pageable);
@@ -24,15 +25,15 @@ public interface IUserService {
 	 
 	 UserDTO update(UserRequest userRequest);
 	 
-	 Map<Long, List<UserDTO>> findUsersByPreferences(String preferences, Pageable pageable);
-	 
 	 UserDTO resetPassword(String userId, String password);
 	 
 	 UserDTO checkSpecificActiveUser(String userId);
 	 
-	 UserDTO deletePreferencesByUser(String userId, List<String> preferences) throws Exception ;
-	 
 	 User findByUserId(String userId);
 	 
-	 UserDTO updatePreferencesByUser(String userId, List<String> preferences) throws Exception;
+	 UserDTO updateRoleByUser(String userId,RoleType role);
+	 
+	 UserDTO checkSpecificActiveUserByEmail(String email);
+	 
+	 User findActiveUserByID(String userId);
 }

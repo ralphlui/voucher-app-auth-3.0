@@ -5,7 +5,6 @@ import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -14,21 +13,20 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.amazonaws.services.sqs.model.SendMessageResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.RequiredArgsConstructor;
 import voucher.management.app.auth.configuration.AWSConfig;
 import voucher.management.app.auth.dto.AuditLogRequest;
 import voucher.management.app.auth.service.IAuditService;
 
 @Service
+@RequiredArgsConstructor
 public class AuditLogService implements IAuditService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(AuditLogService.class);
 	
 	
-	@Autowired
-	private AWSConfig awsConfig;
-	
-	@Autowired
-	private AmazonSQS amazonSQS;
+	private final AWSConfig awsConfig;
+	private final AmazonSQS amazonSQS;
 
 
 	@Async
@@ -46,11 +44,11 @@ public class AuditLogService implements IAuditService {
 		            .withMessageBody(auditLogRequest);
 
 		    SendMessageResult sendMessageResult = amazonSQS.sendMessage(sendMessageRequest);
-		    logger.info("Message response in SQS: " + sendMessageResult.getMessageId());
+		    logger.info("Message response in SQS: {}",sendMessageResult.getMessageId());
 		    
 		} catch (Exception e) {
 		    // Generic exception handling for any other unforeseen errors
-		    logger.error("Exception: Unexpected error occurred while sending audit logs to SQS " + e.toString());
+		    logger.error("Exception: Unexpected error occurred while sending audit logs to SQS ", e);
 		}
 	}
 	
@@ -60,20 +58,12 @@ public class AuditLogService implements IAuditService {
 			String remarks) {
 
 		ObjectMapper objectMapper = new ObjectMapper();
-		AuditLogRequest logRequest = new AuditLogRequest();
-		logRequest.setStatusCode(statusCode);
-		logRequest.setUserId(userId);
-		logRequest.setUsername(username);
-		logRequest.setActivityType(activityType);
-		logRequest.setActivityDescription(activityDescription);
-		logRequest.setRequestActionEndpoint(requestActionEndpoint);
-		logRequest.setResponseStatus(responseStatus);
-		logRequest.setRequestType(requestType);
-		logRequest.setRemarks(remarks);
+		AuditLogRequest logRequest = new AuditLogRequest(statusCode, userId, username,
+				activityType, activityDescription, requestActionEndpoint, responseStatus, requestType, remarks);
 		try {
 
 			String auditLogString = objectMapper.writeValueAsString(logRequest);
-			logger.info("Serialized JSON: " + auditLogString);
+			logger.info("Serialized auditLogString JSON");
 
 			byte[] messageBytes = auditLogString.getBytes(StandardCharsets.UTF_8);
 			int messageSize = messageBytes.length;
@@ -94,7 +84,7 @@ public class AuditLogService implements IAuditService {
 			return auditLogString;
 
 		} catch (Exception e) {
-			logger.error("Exception: Unexpected error occurred while creatin audit log object", e.toString());
+			logger.error("Exception: Unexpected error occurred while creatin audit log object", e);
 			e.printStackTrace();
 		}
 		return "";
@@ -122,10 +112,9 @@ public class AuditLogService implements IAuditService {
 	            return remarks; 
 	        }
 
-	        String truncatedRemarks = new String(remarkBytes, 0, allowedBytesForRemarks, StandardCharsets.UTF_8);
-	        return truncatedRemarks;
+	        return  new String(remarkBytes, 0, allowedBytesForRemarks, StandardCharsets.UTF_8);
 	    } catch (Exception e) {
-	        logger.error("Error while truncating message remarks: {}", e.getMessage());
+	        logger.error("Error while truncating message remarks: ", e);
 	        return remarks; 
 	    }
 	}

@@ -8,7 +8,7 @@ public interface IAPIHelperValidationStrategy<T> {
 	
 	ValidationResult validateObject(String data);
 	
-	ValidationResult validateUpdating(String data) ;
+	ValidationResult validateUpdating(T data) ;
 	
-	ValidationResult validateObjectByUserId(String userId);
+	ValidationResult validateObjectByUserId(T userId,boolean requiresPasswordValidation);
 }

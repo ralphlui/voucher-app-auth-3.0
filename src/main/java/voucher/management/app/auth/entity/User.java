@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import voucher.management.app.auth.enums.AuthProvider;
 import voucher.management.app.auth.enums.RoleType;
 
 @Entity
@@ -68,8 +69,11 @@ public class User {
 	@Column(nullable = false, columnDefinition = "boolean default false")
     private boolean isVerified;
 	
-	@Column(nullable = true, columnDefinition = "varchar(255)")
-	private String preferences;
+	
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = true)
+    private AuthProvider authProvider;
+
 	
 }
 
